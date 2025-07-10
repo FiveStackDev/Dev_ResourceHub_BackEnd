@@ -36,5 +36,5 @@ node_modules/
 .env
 .env.local
 
-auth/
+/auth/
 # Ballerina resources
