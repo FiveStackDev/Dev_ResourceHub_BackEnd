@@ -43,7 +43,7 @@ jwt:IssuerConfig jwtIssuerConfig = {
     audience: ["ballerina.io"],
     signatureConfig: {
         config: {
-            keyFile: "auth//certificate.key"
+            keyFile: "auth/certificate.key"
         }
     },
     expTime: 3600
