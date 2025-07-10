@@ -1,4 +1,6 @@
 import ResourceHub.resourcehubservices as resourcehubservices;
+import ballerinax/mysql.driver as _;
+
 public function main() returns error? {
     check resourcehubservices:connectDatabase();
     check resourcehubservices:startMealTypeService();
