@@ -17,6 +17,7 @@ final mysql:Client dbClient = check new(
 );
 
 listener http:Listener ln = new(9090);
+listener http:Listener report = new(9091);
 
 public function connectDatabase() returns error? {
     io:println("Database connected successfully...");
