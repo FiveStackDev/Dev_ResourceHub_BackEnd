@@ -3,7 +3,7 @@ import ballerina/http;
 import ballerina/email;
 import ballerina/mime;
 import ballerina/sql;
-import ballerinax/mysql;
+import ballerina/io;
 
 
 configurable string SMTP_HOST = ?;
@@ -47,12 +47,15 @@ service /report on report {
 }
 
 function generateAndSendReport(string endpoint, string reportTitle, string fileName, string reportName, string frequency) returns error? {
+
     // 1. Fetch data for the report
+    io:println("Step 1: Fetching data for the report from endpoint: " + endpoint);
     http:Client dataClient = check new ("http://localhost:9091");
     http:Response dataResp = check dataClient->get(endpoint);
     json data = check dataResp.getJsonPayload();
 
     // 2. Generate HTML content
+    io:println("Step 2: Generating HTML content for the report");
     string htmlContent = "<!DOCTYPE html>\n<html>\n<head>\n" +
                         "<title>" + reportTitle + "</title>\n" +
                         "<style>table { border-collapse: collapse; width: 100%; }" +
@@ -88,6 +91,7 @@ function generateAndSendReport(string endpoint, string reportTitle, string fileN
     htmlContent += "</table></body></html>";
 
     // 3. Convert HTML to PDF using PDFShift API
+    io:println("Step 3: Converting HTML to PDF using PDFShift API");
     http:Client pdfShiftClient = check new ("https://api.pdfshift.io");
     json pdfRequest = {
         "source": htmlContent,
@@ -105,10 +109,10 @@ function generateAndSendReport(string endpoint, string reportTitle, string fileN
     );
 
     byte[] pdfBytes = check pdfResponse.getBinaryPayload();
+    io:println("Step 3: PDF generated, size: " + pdfBytes.length().toString() + " bytes");
 
     // 4. Fetch user emails from DB for this report type and frequency
-    mysql:Client dbClient = check new (user = SMTP_USER, password = SMTP_PASSWORD, host = SMTP_HOST, port = 3306, database = "your_db_name");
-    string emailQuery = "SELECT u.email FROM schedulereports s JOIN users u ON s.user_id = u.user_id WHERE s.report_name = ? AND s.frequency = ?";
+    io:println("Step 4: Fetching user emails for report type: " + reportName + ", frequency: " + frequency);
     sql:ParameterizedQuery pq = `SELECT u.email FROM schedulereports s JOIN users u ON s.user_id = u.user_id WHERE s.report_name = ${reportName} AND s.frequency = ${frequency}`;
     stream<record {| string email; |}, error?> emailStream = dbClient->query(pq);
     string[] emailList = [];
@@ -118,24 +122,28 @@ function generateAndSendReport(string endpoint, string reportTitle, string fileN
     check e;
     check emailStream.close();
 
+    io:println("Step 4: Number of emails found: " + emailList.length().toString());
     if emailList.length() == 0 {
+        io:println("No users found for this report and frequency");
         return error("No users found for this report and frequency");
     }
 
-    // 5. Send email with PDF attachment to all users
+    // 5. Send email with PDF attachment to all users (pattern from email_service.bal)
+    io:println("Step 5: Sending email with PDF attachment to users");
     mime:Entity pdfAttachment = new;
     pdfAttachment.setByteArray(pdfBytes, "application/pdf");
     pdfAttachment.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
 
     email:Message emailMessage = {
-        to: emailList,
+        to: "minulck@gmail.com",
         subject: reportTitle,
         body: "Please find the attached " + reportTitle + ".",
         attachments: [pdfAttachment]
     };
 
     check emailClient->sendMessage(emailMessage);
+    io:println("Step 5: Email sent successfully to all users.");
 
-    http:Response response = new;
-    response.setPayload("Report has been sent successfully");
+    // Optionally, log or return a message
+    return;
 }

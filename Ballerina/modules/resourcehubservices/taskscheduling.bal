@@ -82,10 +82,10 @@ public function scheduled() returns error? {
     io:println("Scheduled weekly report job (every 7 days).");
 
     // Schedule biweekly job: every 14 days (1209600 seconds)
-    task:JobId _ = check task:scheduleJobRecurByFrequency(new BiweeklyJob(), 200);
+    task:JobId _ = check task:scheduleJobRecurByFrequency(new BiweeklyJob(), 1209600);
     io:println("Scheduled biweekly report job (every 14 days).");
 
     // Schedule monthly job: every 30 days (2592000 seconds)
-    task:JobId _ = check task:scheduleJobRecurByFrequency(new MonthlyJob(), 350);
+    task:JobId _ = check task:scheduleJobRecurByFrequency(new MonthlyJob(), 2592000);
     io:println("Scheduled monthly report job (every 30 days).");
 }
