@@ -135,7 +135,7 @@ function generateAndSendReport(string endpoint, string reportTitle, string fileN
     pdfAttachment.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
 
     email:Message emailMessage = {
-        to: "minulck@gmail.com",
+        to: emailList,
         subject: reportTitle,
         body: "Please find the attached " + reportTitle + ".",
         attachments: [pdfAttachment]
