@@ -16,7 +16,7 @@ public type Profile record {|
 // Structure to carry email and verification code
 public type Email record {|
     string email;
-    int? code;
+    int? code = ();
 |};
 
 // Structure for phone number update

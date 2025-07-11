@@ -14,7 +14,7 @@ service /report on ln {
     resource function get generate(http:Caller caller) returns error? {
         // Fetch data
         http:Client bookClient = check new ("http://localhost:9090");
-        json bookData = check bookClient->get("/calander/mealevents");
+        json bookData = check bookClient->get("/calendar/mealevents");
 
         // Generate HTML content
         string htmlContent = "<!DOCTYPE html>\n<html>\n<head>\n" +
@@ -63,7 +63,7 @@ service /report on ln {
             "/v3/convert/pdf",
             pdfRequest,
             headers = {
-                "Authorization": "Basic " + ("api:" + PDFSHIFT_API_KEY).toBytes().toBase64(), // Replace with your API key
+                "Authorization": "Basic " + ("api:" + PDFSHIFT_API_KEY).toBytes().toBase64(), 
                 "Content-Type": "application/json"
             }
         );
