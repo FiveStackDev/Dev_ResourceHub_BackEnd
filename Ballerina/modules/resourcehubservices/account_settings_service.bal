@@ -118,12 +118,17 @@ service /settings on ln {
         email:Message resetEmail = {
             to: [email.email],
             subject: "Verify Your Email Address to Complete the Update",
-            body: string `Your verification code is: ${email.code ?: "!!error!!"}
+            body: string `Thank you for signing up with ResourceHub! To complete your registration and secure your account, please verify your email address by entering the code below in the app
 
-Enter this code in the app to verify your email address.
+🔐 Your Verification Code: ${email.code ?: "!!error!!"}
 
-If you didn’t request this, you can safely ignore this message.
-`
+Please enter this code within the next few minutes to complete the verification process. This helps us ensure the security of your account and provide you with the best experience.
+
+If you did not request this verification code, you can safely ignore this email. Your account will remain unchanged and no action will be taken.
+
+Need help? Our support team is here for you. Feel free to contact us at resourcehub.contact.info@gmail.com  if you have any questions or concerns.
+
+Thanks for choosing ResourceHub. We're excited to have you on board!`
         };
 
         error? emailResult = emailClient->sendMessage(resetEmail);
