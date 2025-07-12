@@ -122,10 +122,12 @@ function generateAndSendReport(string endpoint, string reportTitle, string fileN
     check e;
     check emailStream.close();
 
+
     io:println("Step 4: Number of emails found: " + emailList.length().toString());
     if emailList.length() == 0 {
         io:println("No users found for this report and frequency");
-        return error("No users found for this report and frequency");
+        // Cancel the email sending part if no emails found
+        return;
     }
 
     // 5. Send email with PDF attachment to all users (pattern from email_service.bal)
