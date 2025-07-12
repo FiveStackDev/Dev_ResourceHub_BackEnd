@@ -1,6 +1,12 @@
 import ballerina/http;
 import ballerina/sql;
 
+public type ScheduleReport record{|
+    int user_id;
+    string report_name;
+    string frequency;
+|};
+
 @http:ServiceConfig {
     cors: {
         allowOrigins: ["http://localhost:5173", "*"],
@@ -9,8 +15,20 @@ import ballerina/sql;
     }
 }
 
-service /schedulereports on report {
+service /schedulereports on ln{
+        resource function post addscedulereport(@http:Payload ScheduleReport schedulereport) returns json | error{
+        sql:ExecutionResult result = check dbClient->execute(`
+            insert into schedulereports (user_id,report_name,frequency)
+            values(${schedulereport.user_id},${schedulereport.report_name},${schedulereport.frequency})
+        `);
+        if result.affectedRowCount == 0 { 
+            return {message: "Failed to add schedule event"}; 
+        } 
+        return {message: "schedule event added successfully"};
+    }
+}
 
+service /schedulereports on report {
     resource function get weeklyassetrequestdetails() returns AssetRequest[]|error {
  
         stream<AssetRequest, sql:Error?> resultstream = dbClient->query
