@@ -11,5 +11,5 @@ public function main() returns error? {
     check resourcehubservices:startMaintenanceManagementService();
     check resourcehubservices:startDashboardAdminService();
     check resourcehubservices:startDashboardUserService();
-    check resourcehubservices:scheduled();
+    // check resourcehubservices:scheduled();
 }
