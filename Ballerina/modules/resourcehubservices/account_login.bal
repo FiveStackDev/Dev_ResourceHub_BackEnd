@@ -133,9 +133,21 @@ service /auth on ln {
         email:Message resetEmail = {
             to: [password.email],
             subject: "Your Account Password Reset",
-            body: string `Your temporary password is: ${randomPassword}
-                         Please change your password after logging in.
-                         Login here: http://localhost:5173/login`
+            body: string `We received a request to reset the password associated with your account. If you made this request, you can reset your password by clicking the button below:
+
+https://fivestackdev-resourcehub.vercel.app/
+
+As part of the process, here is your temporary password: ${randomPassword}
+
+Please use this temporary password to log in and remember to update it with a new secure password after logging in.
+
+If you did not request a password reset, please ignore this email. Your password will remain unchanged.
+
+If you have any questions or need further assistance, feel free to contact our support team.
+
+Best regards,
+ResourceHub
+Support Team`
         };
 
         error? emailResult = emailClient->sendMessage(resetEmail);
