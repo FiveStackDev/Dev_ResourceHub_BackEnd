@@ -1,6 +1,6 @@
 import ballerina/http;
 import ballerina/sql;
-
+import ballerina/jwt;
 public type ScheduleReport record{|
     int user_id;
     string report_name;
@@ -11,12 +11,16 @@ public type ScheduleReport record{|
     cors: {
         allowOrigins: ["http://localhost:5173", "*"],
         allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allowHeaders: ["Content-Type"]
+        allowHeaders: ["Content-Type", "Authorization"]
     }
 }
 
 service /schedulereports on ln{
-        resource function post addscedulereport(@http:Payload ScheduleReport schedulereport) returns json | error{
+        resource function post addscedulereport(http:Request req,@http:Payload ScheduleReport schedulereport) returns json | error{
+         jwt:Payload payload = check getValidatedPayload(req);
+        if (!hasAnyRole(payload, ["Admin"])) {
+            return error("Forbidden: You do not have permission to add maintenance requests");
+        }
         sql:ExecutionResult result = check dbClient->execute(`
             insert into schedulereports (user_id,report_name,frequency)
             values(${schedulereport.user_id},${schedulereport.report_name},${schedulereport.frequency})
@@ -28,6 +32,13 @@ service /schedulereports on ln{
     }
 }
 
+@http:ServiceConfig {
+    cors: {
+        allowOrigins: ["http://localhost:5173", "*"],
+        allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allowHeaders: ["Content-Type"]
+    }
+}
 service /schedulereports on report {
     resource function get weeklyassetrequestdetails() returns AssetRequest[]|error {
  
