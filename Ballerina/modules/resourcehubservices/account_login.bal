@@ -133,17 +133,9 @@ service /auth on ln {
         email:Message resetEmail = {
             to: [password.email],
             subject: "Your Account Password Reset",
-            body: string `Thank you for signing up with [Your Company Name]! To complete your registration and secure your account, please verify your email address by entering the code below in the app https://fivestackdev-resourcehub.vercel.app/
-
-🔐 Your Verification Code: ${randomPassword}
-
-Please enter this code within the next few minutes to complete the verification process. This helps us ensure the security of your account and provide you with the best experience.
-
-If you did not request this verification code, you can safely ignore this email. Your account will remain unchanged and no action will be taken.
-
-Need help? Our support team is here for you. Feel free to contact us at resourcehub.contact.info@gmail.com  if you have any questions or concerns.
-
-Thanks for choosing ResourceHub. We're excited to have you on board!`
+            body: string `Your temporary password is: ${randomPassword}
+                         Please change your password after logging in.
+                         Login here: http://localhost:5173/login`
         };
 
         error? emailResult = emailClient->sendMessage(resetEmail);
