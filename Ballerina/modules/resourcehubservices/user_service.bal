@@ -61,17 +61,30 @@ service /user on ln {
                 subject: "Your Account Login Password", 
                 body: string `Hello,
 
-Welcome to ResourceHub ! We're excited to have you on board.
+Welcome to ResourceHub – we're thrilled to have you join our platform!
 
-Your temporary login password is: ${randomPassword}
+An account has been created for you, and you're now one step away from accessing a powerful suite of tools and resources designed to make your experience smooth and productive.
 
-For security reasons, please log in using the link below and change your password immediately:
+Here are your temporary login credentials:
 
-[ Log In to ResourceHub ] : (https://resourcehub-fivestackdev.vercel.app/)
+🔑 Temporary Password: ${randomPassword}
 
-If you did not request this account, please disregard this message.
+To begin using your account, please follow these steps:
 
-Best regards,  
+Click the link below to log in to your account:
+🔗 https://fivestackdev-resourcehub.vercel.app/
+
+Use your temporary password to log in.
+
+Once logged in, you will be prompted to create a new secure password. This is a mandatory step to protect your account.
+
+⚠ Important: For your security, we recommend choosing a strong password that you do not use elsewhere.
+
+If you were not expecting this account or believe this message was sent in error, you can safely ignore it—no action will be taken.
+
+Should you need help or have any questions, feel free to contact our support team. We're here to help!
+
+Best regards,
 The ResourceHub Team` 
             }; 
             var emailResult = emailClient->sendMessage(emailMsg); 

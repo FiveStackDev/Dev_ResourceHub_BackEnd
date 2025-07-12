@@ -118,7 +118,7 @@ service /settings on ln {
         email:Message resetEmail = {
             to: [email.email],
             subject: "Verify Your Email Address to Complete the Update",
-            body: string `Thank you for signing up with ResourceHub! To complete your registration and secure your account, please verify your email address by entering the code below in the app
+            body: string `Thank you for signing up with ResourceHub! To complete your Changes and secure your account, please verify your email address by entering the code below in the app
 
 🔐 Your Verification Code: ${email.code ?: "!!error!!"}
 
