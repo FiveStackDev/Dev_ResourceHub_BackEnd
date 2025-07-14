@@ -86,7 +86,7 @@ The **Resource Hub Backend** is a Ballerina-based API service that manages organ
    * Create or edit the `Config.toml` file inside the root directory with the following content:
 
    ```toml
-   [backend.resourcehubservices]
+   [ResourceHub.resourcehubservices]
 
    # Database configuration
    USER = "your_database_user"
