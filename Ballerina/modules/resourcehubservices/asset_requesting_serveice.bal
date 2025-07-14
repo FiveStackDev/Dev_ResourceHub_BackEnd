@@ -169,7 +169,7 @@ service /assetrequest on ln {
             return error("Forbidden: You do not have permission to access due assets");
         }
         stream<AssetRequest, sql:Error?> resultstream = dbClient->query
-        (`        u.profile_picture_url,
+        (`select u.profile_picture_url,
         u.username,
         a.asset_id,
         a.asset_name,
