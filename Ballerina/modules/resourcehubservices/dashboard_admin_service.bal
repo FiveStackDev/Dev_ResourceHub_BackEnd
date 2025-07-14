@@ -1,7 +1,7 @@
 import ballerina/http;
 import ballerina/io;
-import ballerina/sql;
 import ballerina/jwt;
+import ballerina/sql;
 
 type MonthlyUserData record {|
     int month;
@@ -47,7 +47,7 @@ service /dashboard/admin on ln {
     // Only admin can access dashboard admin endpoints
     resource function get stats(http:Request req) returns json|error {
         jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin","SuperAdmin"])) {
+        if (!hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
         // Existing counts
@@ -183,7 +183,7 @@ service /dashboard/admin on ln {
     // Resource to get data for resource cards
     resource function get resources(http:Request req) returns json|error {
         jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin","SuperAdmin"])) {
+        if (!hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
 
@@ -212,93 +212,93 @@ service /dashboard/admin on ln {
     // Resource to get meal distribution data for pie chart
     resource function get mealdistribution(http:Request req) returns json|error {
         jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin","SuperAdmin"])) {
+        if (!hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
-    // Query to get all meal types from mealtimes
-    stream<MealTime, sql:Error?> mealTimeStream = dbClient->query(
+        // Query to get all meal types from mealtimes
+        stream<MealTime, sql:Error?> mealTimeStream = dbClient->query(
         `SELECT mealtime_id, mealtime_name FROM mealtimes ORDER BY mealtime_id`,
         MealTime
-    );
+        );
 
-    // Convert meal time stream to array
-    MealTime[] mealTimes = [];
-    check from MealTime row in mealTimeStream
-        do {
-            mealTimes.push(row);
-        };
+        // Convert meal time stream to array
+        MealTime[] mealTimes = [];
+        check from MealTime row in mealTimeStream
+            do {
+                mealTimes.push(row);
+            };
 
-    // Query to get meal event counts by day of week and meal type
-    stream<MealDistributionData, sql:Error?> mealDistributionStream = dbClient->query(
+        // Query to get meal event counts by day of week and meal type
+        stream<MealDistributionData, sql:Error?> mealDistributionStream = dbClient->query(
         `SELECT DAYOFWEEK(meal_request_date) AS day_of_week, mealtimes.mealtime_name, COUNT(requestedmeal_id) AS count 
          FROM requestedmeals 
          JOIN mealtimes ON requestedmeals.meal_time_id = mealtimes.mealtime_id
          GROUP BY DAYOFWEEK(meal_request_date), mealtimes.mealtime_name
          ORDER BY day_of_week, mealtimes.mealtime_name`,
         MealDistributionData
-    );
+        );
 
-    // Convert meal distribution stream to array
-    MealDistributionData[] mealDistributionData = [];
-    check from MealDistributionData row in mealDistributionStream
-        do {
-            mealDistributionData.push(row);
-        };
+        // Convert meal distribution stream to array
+        MealDistributionData[] mealDistributionData = [];
+        check from MealDistributionData row in mealDistributionStream
+            do {
+                mealDistributionData.push(row);
+            };
 
-    // Initialize a map to store data arrays for each meal type
-    map<int[]> mealDataMap = {};
-    foreach var meal in mealTimes {
-        mealDataMap[meal.mealtime_name] = [0, 0, 0, 0, 0, 0, 0]; // 7 days: Sun, Mon, Tue, Wed, Thu, Fri, Sat
-    }
+        // Initialize a map to store data arrays for each meal type
+        map<int[]> mealDataMap = {};
+        foreach var meal in mealTimes {
+            mealDataMap[meal.mealtime_name] = [0, 0, 0, 0, 0, 0, 0]; // 7 days: Sun, Mon, Tue, Wed, Thu, Fri, Sat
+        }
 
-    // Populate data arrays based on meal_name and day_of_week
-    foreach var row in mealDistributionData {
-        // DAYOFWEEK returns 1=Sunday, 2=Monday, ..., 7=Saturday
-        // Map to array index: 1->0 (Sun), 2->1 (Mon), ..., 7->6 (Sat)
-        int arrayIndex = row.day_of_week - 1;
-        if (mealDataMap.hasKey(row.mealtime_name)) {
-            int[]? dataArray = mealDataMap[row.mealtime_name];
-            if (dataArray is int[]) {
-                dataArray[arrayIndex] = row.count;
+        // Populate data arrays based on meal_name and day_of_week
+        foreach var row in mealDistributionData {
+            // DAYOFWEEK returns 1=Sunday, 2=Monday, ..., 7=Saturday
+            // Map to array index: 1->0 (Sun), 2->1 (Mon), ..., 7->6 (Sat)
+            int arrayIndex = row.day_of_week - 1;
+            if (mealDataMap.hasKey(row.mealtime_name)) {
+                int[]? dataArray = mealDataMap[row.mealtime_name];
+                if (dataArray is int[]) {
+                    dataArray[arrayIndex] = row.count;
+                }
             }
         }
-    }
 
-    // Define border colors for datasets (cycle through a predefined list)
-    string[] borderColors = ["#4C51BF", "#38B2AC", "#ED8936", "#E53E3E", "#805AD5", "#319795", "#DD6B20"];
-    json[] datasets = [];
-    int colorIndex = 0;
+        // Define border colors for datasets (cycle through a predefined list)
+        string[] borderColors = ["#4C51BF", "#38B2AC", "#ED8936", "#E53E3E", "#805AD5", "#319795", "#DD6B20"];
+        json[] datasets = [];
+        int colorIndex = 0;
 
-    // Create datasets dynamically
-    foreach var meal in mealTimes {
-        string mealName = meal.mealtime_name;
-        int[]? dataArray = mealDataMap[mealName];
-        if (dataArray is int[]) {
-            datasets.push({
-                "label": mealName,
-                "data": dataArray,
-                "borderColor": borderColors[colorIndex % borderColors.length()],
-                "tension": 0.4
-            });
-            colorIndex += 1;
+        // Create datasets dynamically
+        foreach var meal in mealTimes {
+            string mealName = meal.mealtime_name;
+            int[]? dataArray = mealDataMap[mealName];
+            if (dataArray is int[]) {
+                datasets.push({
+                    "label": mealName,
+                    "data": dataArray,
+                    "borderColor": borderColors[colorIndex % borderColors.length()],
+                    "tension": 0.4
+                });
+                colorIndex += 1;
+            }
         }
-    }
 
-    // Construct the JSON response
-    return {
-        "labels": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-        "datasets": datasets
-    };
-}
+        // Construct the JSON response
+        return {
+            "labels": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+            "datasets": datasets
+        };
+    }
 
     // Resource to get resource allocation data
     resource function get resourceallocation(http:Request req) returns json|error {
         jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin","SuperAdmin"])) {
+        if (!hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
-    // Query to get total and allocated quantities by category
-    stream<ResourceAllocationData, sql:Error?> allocationStream = dbClient->query(
+        // Query to get total and allocated quantities by category
+        stream<ResourceAllocationData, sql:Error?> allocationStream = dbClient->query(
         `SELECT 
             category,
             SUM(quantity) AS total
@@ -306,27 +306,27 @@ service /dashboard/admin on ln {
          GROUP BY category 
          ORDER BY category`,
         ResourceAllocationData
-    );
+        );
 
-    // Convert stream to array
-    ResourceAllocationData[] allocationData = [];
-    check from ResourceAllocationData row in allocationStream
-        do {
-            allocationData.push(row);
-        };
+        // Convert stream to array
+        ResourceAllocationData[] allocationData = [];
+        check from ResourceAllocationData row in allocationStream
+            do {
+                allocationData.push(row);
+            };
 
-    // Construct the JSON response
-    json[] result = [];
-    foreach var row in allocationData {
-        result.push({
-            "category": row.category,
-            "allocated": row.total,
-            "total": row.total
-        });
+        // Construct the JSON response
+        json[] result = [];
+        foreach var row in allocationData {
+            result.push({
+                "category": row.category,
+                "allocated": row.total,
+                "total": row.total
+            });
+        }
+
+        return result;
     }
-
-    return result;
-}
 
     resource function options .() returns http:Ok {
         return http:OK;

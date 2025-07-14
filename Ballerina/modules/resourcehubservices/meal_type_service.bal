@@ -1,11 +1,10 @@
 import ballerina/http;
-import ballerina/sql;
 import ballerina/io;
 import ballerina/jwt;
-
+import ballerina/sql;
 
 // Defines the structure of a MealType record
-public type MealType record {| 
+public type MealType record {|
     int mealtype_id?;
     string mealtype_name;
     string mealtype_image_url;
@@ -22,14 +21,14 @@ public type MealType record {|
 
 // Service handling CRUD operations for meal types
 
-service /mealtype on ln{
+service /mealtype on ln {
     // Only admin, manager, and User can view meal types
     resource function get details(http:Request req) returns MealType[]|error {
         jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin","User","SuperAdmin"])) {
+        if (!hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
-        stream<MealType, sql:Error?> resultStream = 
+        stream<MealType, sql:Error?> resultStream =
             dbClient->query(`SELECT mealtype_id, mealtype_name , mealtype_image_url  FROM mealtypes`);
         MealType[] mealtypes = [];
         check resultStream.forEach(function(MealType meal) {
@@ -41,7 +40,7 @@ service /mealtype on ln{
     // Only admin and manager can add meal types
     resource function post add(http:Request req, @http:Payload MealType mealType) returns json|error {
         jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin","SuperAdmin"])) {
+        if (!hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to add meal types");
         }
         io:println("Received meal type data: " + mealType.toJsonString());
@@ -62,7 +61,7 @@ service /mealtype on ln{
     // Only admin and manager can update meal types
     resource function put details/[int id](http:Request req, @http:Payload MealType mealType) returns json|error {
         jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin","SuperAdmin"])) {
+        if (!hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to update meal types");
         }
         sql:ExecutionResult result = check dbClient->execute(`
@@ -84,7 +83,7 @@ service /mealtype on ln{
     // Only admin and manager can delete meal types
     resource function delete details/[int id](http:Request req) returns json|error {
         jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin","SuperAdmin"])) {
+        if (!hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to delete meal types");
         }
         sql:ExecutionResult result = check dbClient->execute(`
@@ -105,6 +104,7 @@ service /mealtype on ln{
         return http:OK;
     }
 }
+
 // Log service start
 public function startMealTypeService() returns error? {
     io:println("Meal Type service started on port 9090");

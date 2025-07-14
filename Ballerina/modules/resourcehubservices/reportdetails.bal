@@ -1,7 +1,8 @@
 import ballerina/http;
-import ballerina/sql;
 import ballerina/jwt;
-public type ScheduleReport record{|
+import ballerina/sql;
+
+public type ScheduleReport record {|
     int user_id;
     string report_name;
     string frequency;
@@ -15,9 +16,9 @@ public type ScheduleReport record{|
     }
 }
 
-service /schedulereports on ln{
-        resource function post addscedulereport(http:Request req,@http:Payload ScheduleReport schedulereport) returns json | error{
-         jwt:Payload payload = check getValidatedPayload(req);
+service /schedulereports on ln {
+    resource function post addscedulereport(http:Request req, @http:Payload ScheduleReport schedulereport) returns json|error {
+        jwt:Payload payload = check getValidatedPayload(req);
         if (!hasAnyRole(payload, ["Admin"])) {
             return error("Forbidden: You do not have permission to add maintenance requests");
         }
@@ -25,9 +26,9 @@ service /schedulereports on ln{
             insert into schedulereports (user_id,report_name,frequency)
             values(${schedulereport.user_id},${schedulereport.report_name},${schedulereport.frequency})
         `);
-        if result.affectedRowCount == 0 { 
-            return {message: "Failed to add schedule event"}; 
-        } 
+        if result.affectedRowCount == 0 {
+            return {message: "Failed to add schedule event"};
+        }
         return {message: "schedule event added successfully"};
     }
 }
@@ -41,7 +42,7 @@ service /schedulereports on ln{
 }
 service /schedulereports on report {
     resource function get weeklyassetrequestdetails() returns AssetRequest[]|error {
- 
+
         stream<AssetRequest, sql:Error?> resultstream = dbClient->query
         (`SELECT 
         ra.requestedasset_id,
@@ -71,7 +72,7 @@ service /schedulereports on report {
     }
 
     resource function get biweeklyassetrequestdetails() returns AssetRequest[]|error {
-    
+
         stream<AssetRequest, sql:Error?> resultstream = dbClient->query
         (`SELECT 
         ra.requestedasset_id,
@@ -99,8 +100,9 @@ service /schedulereports on report {
 
         return assetrequests;
     }
-     resource function get monthlyassetrequestdetails() returns AssetRequest[]|error {
-    
+
+    resource function get monthlyassetrequestdetails() returns AssetRequest[]|error {
+
         stream<AssetRequest, sql:Error?> resultstream = dbClient->query
         (`SELECT 
         ra.requestedasset_id,
@@ -129,9 +131,8 @@ service /schedulereports on report {
         return assetrequests;
     }
 
-
-     resource function get weeklymealevents() returns MealEvent[]|error {
-        stream<MealEvent, sql:Error?> resultStream = 
+    resource function get weeklymealevents() returns MealEvent[]|error {
+        stream<MealEvent, sql:Error?> resultStream =
             dbClient->query(`SELECT 
             requestedmeals.requestedmeal_id, 
             mealtime_id,mealtimes.mealtime_name , 
@@ -143,16 +144,17 @@ service /schedulereports on report {
             JOIN users ON requestedmeals.user_id = users.user_id 
             join mealtypes ON requestedmeals.meal_type_id = mealtypes.mealtype_id
             join mealtimes ON requestedmeals.meal_time_id = mealtimes.mealtime_id
-            WHERE meal_request_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND CURDATE()`); 
-        MealEvent[] events = []; 
-        check resultStream.forEach(function(MealEvent event) { 
-            events.push(event); 
-        }); 
-        return events; 
-    } 
-         resource function get biweeklymealevents() returns MealEvent[]|error {
-       
-        stream<MealEvent, sql:Error?> resultStream = 
+            WHERE meal_request_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND CURDATE()`);
+        MealEvent[] events = [];
+        check resultStream.forEach(function(MealEvent event) {
+            events.push(event);
+        });
+        return events;
+    }
+
+    resource function get biweeklymealevents() returns MealEvent[]|error {
+
+        stream<MealEvent, sql:Error?> resultStream =
             dbClient->query(`SELECT 
             requestedmeals.requestedmeal_id, 
             mealtime_id,mealtimes.mealtime_name , 
@@ -163,16 +165,17 @@ service /schedulereports on report {
             JOIN users ON requestedmeals.user_id = users.user_id 
             join mealtypes ON requestedmeals.meal_type_id = mealtypes.mealtype_id
             join mealtimes ON requestedmeals.meal_time_id = mealtimes.mealtime_id
-            WHERE meal_request_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 14 DAY) AND CURDATE()`); 
-        MealEvent[] events = []; 
-        check resultStream.forEach(function(MealEvent event) { 
-            events.push(event); 
-        }); 
-        return events; 
-    } 
-         resource function get monthlymealevents() returns MealEvent[]|error {
+            WHERE meal_request_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 14 DAY) AND CURDATE()`);
+        MealEvent[] events = [];
+        check resultStream.forEach(function(MealEvent event) {
+            events.push(event);
+        });
+        return events;
+    }
 
-        stream<MealEvent, sql:Error?> resultStream = 
+    resource function get monthlymealevents() returns MealEvent[]|error {
+
+        stream<MealEvent, sql:Error?> resultStream =
             dbClient->query(`SELECT 
             requestedmeals.requestedmeal_id, 
             mealtime_id,mealtimes.mealtime_name , 
@@ -184,15 +187,13 @@ service /schedulereports on report {
             JOIN users ON requestedmeals.user_id = users.user_id 
             join mealtypes ON requestedmeals.meal_type_id = mealtypes.mealtype_id
             join mealtimes ON requestedmeals.meal_time_id = mealtimes.mealtime_id
-            WHERE meal_request_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND CURDATE()`); 
-        MealEvent[] events = []; 
-        check resultStream.forEach(function(MealEvent event) { 
-            events.push(event); 
-        }); 
-        return events; 
-    } 
-
-
+            WHERE meal_request_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND CURDATE()`);
+        MealEvent[] events = [];
+        check resultStream.forEach(function(MealEvent event) {
+            events.push(event);
+        });
+        return events;
+    }
 
     resource function get weeklymaintenancedetails() returns Maintenance[]|error {
 
@@ -216,8 +217,9 @@ service /schedulereports on report {
         });
         return maintenances;
     }
+
     resource function get biweeklymaintenancedetails() returns Maintenance[]|error {
- 
+
         stream<Maintenance, sql:Error?> resultStream =
             dbClient->query(`SELECT 
                 u.username AS username,
@@ -238,6 +240,7 @@ service /schedulereports on report {
         });
         return maintenances;
     }
+
     resource function get monthlymaintenancedetails() returns Maintenance[]|error {
 
         stream<Maintenance, sql:Error?> resultStream =

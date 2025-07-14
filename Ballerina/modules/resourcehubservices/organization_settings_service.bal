@@ -11,7 +11,6 @@ public type OrgProfile record {|
     string? org_email = ();
 |};
 
-
 // CORS configuration for client access
 @http:ServiceConfig {
     cors: {

@@ -1,10 +1,9 @@
 import ballerina/http;
 import ballerina/io;
-import ballerina/sql;
 import ballerina/jwt;
+import ballerina/sql;
 
 // Helper function to extract and validate JWT token and return payload
-
 
 public type Maintenance record {|
     int maintenance_id?;
@@ -38,12 +37,11 @@ public type Notification record {|
     }
 }
 
-
 service /maintenance on ln {
     // Only admin, manager, and User can view maintenance details
     resource function get details(http:Request req) returns Maintenance[]|error {
         jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin","User","SuperAdmin"])) {
+        if (!hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
         stream<Maintenance, sql:Error?> resultStream =
@@ -70,7 +68,7 @@ service /maintenance on ln {
     // Only admin and manager can add maintenance requests
     resource function post add(http:Request req, @http:Payload Maintenance maintenance) returns json|error {
         jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin","User","SuperAdmin"])) {
+        if (!hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to add maintenance requests");
         }
         sql:ExecutionResult result = check dbClient->execute(
@@ -87,7 +85,7 @@ service /maintenance on ln {
     // Only admin and manager can delete maintenance requests
     resource function delete details/[int id](http:Request req) returns json|error {
         jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin", "User","SuperAdmin"])) {
+        if (!hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to delete maintenance requests");
         }
         sql:ExecutionResult result = check dbClient->execute(
@@ -102,7 +100,7 @@ service /maintenance on ln {
     // Only admin and manager can update maintenance requests
     resource function put details/[int id](http:Request req, @http:Payload Maintenance maintenance) returns json|error {
         jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin","User","SuperAdmin"])) {
+        if (!hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to update maintenance requests");
         }
         sql:ExecutionResult result = check dbClient->execute(
@@ -119,35 +117,35 @@ service /maintenance on ln {
     }
 
     // Only admin, manager, and User can view notifications
-    resource function get notification(http:Request req) returns Notification[]|error{
+    resource function get notification(http:Request req) returns Notification[]|error {
         jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin","User","SuperAdmin"])) {
+        if (!hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
-        stream< Notification ,sql:Error?> resultstream = dbClient->query(
+        stream<Notification, sql:Error?> resultstream = dbClient->query(
             `select m.submitted_date,u.username,m.description,m.priority_level AS priorityLevel,m.status,m.name
             from notification n
             join users u on n.user_id=u.user_id
             join maintenance m on n.maintenance_id=m.maintenance_id`
             );
-            Notification[] notifications =[];
-            check resultstream.forEach(function(Notification notification){
-                notifications.push(notification);
-            });
-            return notifications;
+        Notification[] notifications = [];
+        check resultstream.forEach(function(Notification notification) {
+            notifications.push(notification);
+        });
+        return notifications;
     }
 
     // Only admin and manager can add notifications
-    resource function post addnotification(http:Request req, @http:Payload Notification notification) returns json|error{
+    resource function post addnotification(http:Request req, @http:Payload Notification notification) returns json|error {
         jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin","SuperAdmin"])) {
+        if (!hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to add notifications");
         }
         sql:ExecutionResult result = check dbClient->execute(`
         insert into notification (user_id,maintenance_id)
         values(${notification.user_id},${notification.maintenance_id})`
         );
-         if (result.affectedRowCount == 0) {
+        if (result.affectedRowCount == 0) {
             return error("Failed to add notification");
         }
         return {"message": "Notification request has been updated."};

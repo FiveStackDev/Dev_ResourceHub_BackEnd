@@ -1,10 +1,8 @@
-
-import ballerina/http;
 import ballerina/email;
+import ballerina/http;
+import ballerina/io;
 import ballerina/mime;
 import ballerina/sql;
-import ballerina/io;
-
 
 configurable string SMTP_HOST = ?;
 configurable string SMTP_USER = ?;
@@ -16,9 +14,11 @@ service /report on report {
     resource function get generateWeeklyMeal() returns error? {
         check generateAndSendReport("/schedulereports/weeklymealevents", "Weekly Meal Events Report", "Weekly_Meal_Events_Report.pdf", "meal", "weekly");
     }
+
     resource function get generateBiweeklyMeal() returns error? {
         check generateAndSendReport("/schedulereports/biweeklymealevents", "Biweekly Meal Events Report", "Biweekly_Meal_Events_Report.pdf", "meal", "biweekly");
     }
+
     resource function get generateMonthlyMeal() returns error? {
         check generateAndSendReport("/schedulereports/monthlymealevents", "Monthly Meal Events Report", "Monthly_Meal_Events_Report.pdf", "meal", "monthly");
     }
@@ -27,9 +27,11 @@ service /report on report {
     resource function get generateWeeklyAsset() returns error? {
         check generateAndSendReport("/schedulereports/weeklyassetrequestdetails", "Weekly Assets Report", "Weekly_Assets_Report.pdf", "asset", "weekly");
     }
+
     resource function get generateBiweeklyAsset() returns error? {
         check generateAndSendReport("/schedulereports/biweeklyassetrequestdetails", "Biweekly Assets Report", "Biweekly_Assets_Report.pdf", "asset", "biweekly");
     }
+
     resource function get generateMonthlyAsset() returns error? {
         check generateAndSendReport("/schedulereports/monthlyassetrequestdetails", "Monthly Assets Report", "Monthly_Assets_Report.pdf", "asset", "monthly");
     }
@@ -38,9 +40,11 @@ service /report on report {
     resource function get generateWeeklyMaintenance() returns error? {
         check generateAndSendReport("/schedulereports/weeklymaintenancedetails", "Weekly Maintenances Report", "Weekly_Maintenances_Report.pdf", "maintenance", "weekly");
     }
+
     resource function get generateBiweeklyMaintenance() returns error? {
         check generateAndSendReport("/schedulereports/biweeklymaintenancedetails", "Biweekly Maintenances Report", "Biweekly_Maintenances_Report.pdf", "maintenance", "biweekly");
     }
+
     resource function get generateMonthlyMaintenance() returns error? {
         check generateAndSendReport("/schedulereports/monthlymaintenancedetails", "Monthly Maintenances Report", "Monthly_Maintenances_Report.pdf", "maintenance", "monthly");
     }
@@ -103,9 +107,9 @@ function generateAndSendReport(string endpoint, string reportTitle, string fileN
         "/v3/convert/pdf",
         pdfRequest,
         headers = <map<string>>{
-            "Authorization": "Basic " + ("api:" + PDFSHIFT_API_KEY).toBytes().toBase64(),
-            "Content-Type": "application/json"
-        }
+        "Authorization": "Basic " + ("api:" + PDFSHIFT_API_KEY).toBytes().toBase64(),
+        "Content-Type": "application/json"
+    }
     );
 
     byte[] pdfBytes = check pdfResponse.getBinaryPayload();
@@ -114,14 +118,13 @@ function generateAndSendReport(string endpoint, string reportTitle, string fileN
     // 4. Fetch user emails from DB for this report type and frequency
     io:println("Step 4: Fetching user emails for report type: " + reportName + ", frequency: " + frequency);
     sql:ParameterizedQuery pq = `SELECT u.email FROM schedulereports s JOIN users u ON s.user_id = u.user_id WHERE s.report_name = ${reportName} AND s.frequency = ${frequency}`;
-    stream<record {| string email; |}, error?> emailStream = dbClient->query(pq);
+    stream<record {|string email;|}, error?> emailStream = dbClient->query(pq);
     string[] emailList = [];
-    error? e = emailStream.forEach(function(record {| string email; |} row) {
+    error? e = emailStream.forEach(function(record {|string email;|} row) {
         emailList.push(row.email);
     });
     check e;
     check emailStream.close();
-
 
     io:println("Step 4: Number of emails found: " + emailList.length().toString());
     if emailList.length() == 0 {

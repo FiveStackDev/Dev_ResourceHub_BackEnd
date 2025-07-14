@@ -8,8 +8,6 @@ type ForgotPassword record {
     string email;
 };
 
-
-
 @http:ServiceConfig {
     cors: {
         allowOrigins: ["http://localhost:5173", "*"],

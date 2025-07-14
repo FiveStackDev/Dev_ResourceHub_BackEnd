@@ -1,11 +1,10 @@
 import ballerina/http;
-import ballerina/sql;
 import ballerina/io;
 import ballerina/jwt;
-
+import ballerina/sql;
 
 // Defines the structure of a MealTime object
-public type MealTime record {| 
+public type MealTime record {|
     int mealtime_id?;
     string mealtime_name;
     string mealtime_image_url;
@@ -22,14 +21,14 @@ public type MealTime record {|
 
 // MealTime service with CRUD operations
 
-service /mealtime on ln{
+service /mealtime on ln {
     // Only admin, manager, and User can view mealtime details
     resource function get details(http:Request req) returns MealTime[]|error {
         jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin","User","SuperAdmin"])) {
+        if (!hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
-        stream<MealTime, sql:Error?> resultStream = 
+        stream<MealTime, sql:Error?> resultStream =
             dbClient->query(`SELECT mealtime_id,mealtime_name , mealtime_image_url FROM mealtimes`);
         MealTime[] mealtimes = [];
         check resultStream.forEach(function(MealTime meal) {
@@ -41,7 +40,7 @@ service /mealtime on ln{
     // Only admin and manager can add mealtime records
     resource function post add(http:Request req, @http:Payload MealTime mealTime) returns json|error {
         jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin","SuperAdmin"])) {
+        if (!hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to add mealtime records");
         }
         io:println("Received meal time data: " + mealTime.toJsonString());
@@ -62,7 +61,7 @@ service /mealtime on ln{
     // Only admin and manager can update mealtime records
     resource function put details/[int id](http:Request req, @http:Payload MealTime mealTime) returns json|error {
         jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin","SuperAdmin"])) {
+        if (!hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to update mealtime records");
         }
         sql:ExecutionResult result = check dbClient->execute(`
@@ -84,7 +83,7 @@ service /mealtime on ln{
     // Only admin and manager can delete mealtime records
     resource function delete details/[int id](http:Request req) returns json|error {
         jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin","SuperAdmin"])) {
+        if (!hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to delete mealtime records");
         }
         sql:ExecutionResult result = check dbClient->execute(`

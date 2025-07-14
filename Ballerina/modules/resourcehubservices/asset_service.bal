@@ -1,8 +1,7 @@
 import ballerina/http;
-import ballerina/sql;
 import ballerina/io;
 import ballerina/jwt;
-
+import ballerina/sql;
 
 public type Asset record {|
     int asset_id?;
@@ -22,16 +21,16 @@ public type Asset record {|
     }
 }
 
-service /asset on ln{
+service /asset on ln {
     // Only admin, manager, and User can view asset details
-    resource function get details(http:Request req) returns Asset[]|error{
+    resource function get details(http:Request req) returns Asset[]|error {
         jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin", "User","SuperAdmin"])) {
+        if (!hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
         stream<Asset, sql:Error?> resultStream = dbClient->query(`SELECT * FROM assets`);
         Asset[] assets = [];
-        check resultStream.forEach(function(Asset asset){
+        check resultStream.forEach(function(Asset asset) {
             assets.push(asset);
         });
         return assets;
@@ -40,7 +39,7 @@ service /asset on ln{
     // Only admin and manager can add assets
     resource function post add(http:Request req, @http:Payload Asset asset) returns json|error {
         jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin","SuperAdmin"])) {
+        if (!hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to add assets");
         }
         sql:ExecutionResult result = check dbClient->execute(
@@ -61,7 +60,7 @@ service /asset on ln{
     // Only admin and manager can update assets
     resource function put details/[int id](http:Request req, @http:Payload Asset asset) returns json|error {
         jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin","SuperAdmin"])) {
+        if (!hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to update assets");
         }
         sql:ExecutionResult result = check dbClient->execute(`
@@ -99,6 +98,7 @@ service /asset on ln{
         };
     }
 }
+
 public function startAssetService() returns error? {
     io:println("Assets service started on port 9090");
 }
