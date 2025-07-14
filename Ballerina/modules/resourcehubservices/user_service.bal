@@ -61,18 +61,18 @@ service /user on ln {
                 subject: "Your Account Login Password", 
                 body: string `Hello,
 
-Welcome to ResourceHub – we're thrilled to have you join our platform!
+Welcome to ResourceHub - we're thrilled to have you join our platform!
 
 An account has been created for you, and you're now one step away from accessing a powerful suite of tools and resources designed to make your experience smooth and productive.
 
 Here are your temporary login credentials:
 
-🔑 Temporary Password: ${randomPassword}
+Temporary Password: ${randomPassword}
 
 To begin using your account, please follow these steps:
 
 Click the link below to log in to your account:
-🔗 https://fivestackdev-resourcehub.vercel.app/
+https://fivestackdev-resourcehub.vercel.app/
 
 Use your temporary password to log in.
 

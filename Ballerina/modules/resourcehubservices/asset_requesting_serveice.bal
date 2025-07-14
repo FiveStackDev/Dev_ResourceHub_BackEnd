@@ -169,8 +169,7 @@ service /assetrequest on ln {
             return error("Forbidden: You do not have permission to access due assets");
         }
         stream<AssetRequest, sql:Error?> resultstream = dbClient->query
-        (`SELECT 
-        u.profile_picture_url,
+        (`        u.profile_picture_url,
         u.username,
         a.asset_id,
         a.asset_name,
@@ -178,13 +177,14 @@ service /assetrequest on ln {
         ra.submitted_date ,
         ra.handover_date,
         DATEDIFF(ra.handover_date, CURDATE()) AS remaining_days,
-        ra.quantity
+        ra.quantity,
+        ra.status
         FROM requestedassets  ra
         JOIN users u ON ra.user_id = u.user_id
         JOIN assets a ON ra.asset_id = a.asset_id
-        WHERE DATEDIFF(ra.handover_date, CURDATE()) < 0
-        AND ra.is_returning = false
-        AND ra.status != 'Pending'
+        WHERE  DATEDIFF(ra.handover_date, CURDATE()) < 0
+        AND ra.is_returning = true
+        AND ra.status = 'Accepted'
         ORDER BY remaining_days ASC;`
         );
 
@@ -217,8 +217,8 @@ service /assetrequest on ln {
         JOIN users u ON ra.user_id = u.user_id
         JOIN assets a ON ra.asset_id = a.asset_id
         WHERE DATEDIFF(ra.handover_date, CURDATE()) < 0 AND ra.user_id = ${userid}
-        AND ra.is_returning = false
-        AND ra.status != 'Pending'
+        AND ra.is_returning = true
+        AND ra.status = 'Accepted'
         ORDER BY remaining_days ASC;`
         );
 
