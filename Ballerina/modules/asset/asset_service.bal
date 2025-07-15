@@ -101,7 +101,6 @@ service /asset on database:mainListener{
     }
 }
 
-
 public function startAssetService() returns error? {
     io:println("Assets service started on port 9090");
 }

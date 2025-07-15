@@ -1,11 +1,9 @@
-import ballerina/http;
 import ballerina/io;
 import ballerina/task;
 import ballerina/http;
 
 class WeeklyJob {
     *task:Job;
-
     public function execute() {
         do {
             http:Client reportClient = check new ("http://localhost:9091");
@@ -26,7 +24,6 @@ class WeeklyJob {
 // Biweekly job: calls biweekly endpoints
 class BiweeklyJob {
     *task:Job;
-
     public function execute() {
         do {
             http:Client reportClient = check new ("http://localhost:9091");
@@ -47,7 +44,6 @@ class BiweeklyJob {
 // Monthly job: calls monthly endpoints
 class MonthlyJob {
     *task:Job;
-
     public function execute() {
         do {
             http:Client reportClient = check new ("http://localhost:9091");

@@ -167,7 +167,3 @@ Support Team`
 public function startAuthService() returns error? {
     io:println("Auth service started on port 9094");
 }
-
-public function startAuthService() returns error? {
-    io:println("Auth service started on port 9094");
-}

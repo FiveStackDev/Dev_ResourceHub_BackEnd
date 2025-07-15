@@ -7,6 +7,7 @@ import ResourceHub.maintenance;
 import ResourceHub.notification;
 import ResourceHub.auth;
 import ResourceHub.organizations;
+import ResourceHub.report;
 import ballerinax/mysql.driver as _;
 
 public function main() returns error? {
@@ -24,5 +25,6 @@ public function main() returns error? {
     check dashboard:startDashboardAdminService();
     check dashboard:startDashboardUserService();
     check organizations:startOrganizationSettingsService();
+    check report:startReportDetailsService();
     // check report:scheduled();
 }
