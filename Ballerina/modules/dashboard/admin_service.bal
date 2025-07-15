@@ -1,5 +1,6 @@
 import ballerina/http;
 import ballerina/io;
+import ballerina/jwt;
 import ballerina/sql;
 import ballerina/jwt;
 import ResourceHub.database;
@@ -258,6 +259,11 @@ service /dashboard/admin on database:dashboardListener {
         foreach var meal in mealTimes {
             mealDataMap[meal.mealtime_name] = [0, 0, 0, 0, 0, 0, 0]; // 7 days: Sun, Mon, Tue, Wed, Thu, Fri, Sat
         }
+        // Initialize a map to store data arrays for each meal type
+        map<int[]> mealDataMap = {};
+        foreach var meal in mealTimes {
+            mealDataMap[meal.mealtime_name] = [0, 0, 0, 0, 0, 0, 0]; // 7 days: Sun, Mon, Tue, Wed, Thu, Fri, Sat
+        }
 
         // Populate data arrays based on meal_name and day_of_week
         foreach var row in mealDistributionData {
@@ -271,7 +277,23 @@ service /dashboard/admin on database:dashboardListener {
                 }
             }
         }
+        // Populate data arrays based on meal_name and day_of_week
+        foreach var row in mealDistributionData {
+            // DAYOFWEEK returns 1=Sunday, 2=Monday, ..., 7=Saturday
+            // Map to array index: 1->0 (Sun), 2->1 (Mon), ..., 7->6 (Sat)
+            int arrayIndex = row.day_of_week - 1;
+            if (mealDataMap.hasKey(row.mealtime_name)) {
+                int[]? dataArray = mealDataMap[row.mealtime_name];
+                if (dataArray is int[]) {
+                    dataArray[arrayIndex] = row.count;
+                }
+            }
+        }
 
+        // Define border colors for datasets (cycle through a predefined list)
+        string[] borderColors = ["#4C51BF", "#38B2AC", "#ED8936", "#E53E3E", "#805AD5", "#319795", "#DD6B20"];
+        json[] datasets = [];
+        int colorIndex = 0;
         // Define border colors for datasets (cycle through a predefined list)
         string[] borderColors = ["#4C51BF", "#38B2AC", "#ED8936", "#E53E3E", "#805AD5", "#319795", "#DD6B20"];
         json[] datasets = [];
@@ -291,7 +313,27 @@ service /dashboard/admin on database:dashboardListener {
                 colorIndex += 1;
             }
         }
+        // Create datasets dynamically
+        foreach var meal in mealTimes {
+            string mealName = meal.mealtime_name;
+            int[]? dataArray = mealDataMap[mealName];
+            if (dataArray is int[]) {
+                datasets.push({
+                    "label": mealName,
+                    "data": dataArray,
+                    "borderColor": borderColors[colorIndex % borderColors.length()],
+                    "tension": 0.4
+                });
+                colorIndex += 1;
+            }
+        }
 
+        // Construct the JSON response
+        return {
+            "labels": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+            "datasets": datasets
+        };
+    }
         // Construct the JSON response
         return {
             "labels": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
@@ -332,7 +374,18 @@ service /dashboard/admin on database:dashboardListener {
                 "total": row.total
             });
         }
+        // Construct the JSON response
+        json[] result = [];
+        foreach var row in allocationData {
+            result.push({
+                "category": row.category,
+                "allocated": row.total,
+                "total": row.total
+            });
+        }
 
+        return result;
+    }
         return result;
     }
 

@@ -1,6 +1,6 @@
 import ballerina/http;
-import ballerinax/mysql;
 import ballerina/io;
+import ballerinax/mysql;
 
 configurable string USER = ?;
 configurable string PASSWORD = ?;

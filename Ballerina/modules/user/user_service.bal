@@ -1,29 +1,30 @@
 import ballerina/email;
 import ballerina/http;
 import ballerina/io;
+import ballerina/jwt;
 import ballerina/sql;
 import ballerina/jwt;
 import ResourceHub.database;
 import ResourceHub.common;
 
-public type User record {| 
-    int user_id?; 
-    string username; 
-    string profile_picture_url?; 
-    string usertype; 
-    string email; 
-    string phone_number?; 
-    string password?; 
-    string bio; 
-    string created_at?; 
+public type User record {|
+    int user_id?;
+    string username;
+    string profile_picture_url?;
+    string usertype;
+    string email;
+    string phone_number?;
+    string password?;
+    string bio;
+    string created_at?;
 |};
 
-@http:ServiceConfig { 
-    cors: { 
-        allowOrigins: ["http://localhost:5173", "*"], 
-        allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], 
-        allowHeaders: ["Content-Type", "Authorization"] 
-    } 
+@http:ServiceConfig {
+    cors: {
+        allowOrigins: ["http://localhost:5173", "*"],
+        allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allowHeaders: ["Content-Type", "Authorization"]
+    }
 }
 
 service /user on database:mainListener { 
@@ -54,11 +55,11 @@ service /user on database:mainListener {
             insert into 
             users (username,usertype,email,profile_picture_url,phone_number,password,bio,created_at) 
             values (${user.email},${user.usertype},${user.email},'https://img.freepik.com/free-vector/smiling-young-man-illustration_1308-174669.jpg?t=st=1746539771~exp=1746543371~hmac=66ec0b65bf0ae4d49922a69369cec4c0e3b3424613be723e0ca096a97d1039f1&w=740',NULL,${randomPassword},${user.bio},NOW()) 
-        `); 
-        if result.affectedRowCount != 0 { 
-            email:Message emailMsg = { 
-                to: [user.email], 
-                subject: "Your Account Login Password", 
+        `);
+        if result.affectedRowCount != 0 {
+            email:Message emailMsg = {
+                to: [user.email],
+                subject: "Your Account Login Password",
                 body: string `Hello,
 
 Welcome to ResourceHub - we're thrilled to have you join our platform!
@@ -109,16 +110,16 @@ The ResourceHub Team`
         }
         sql:ExecutionResult result = check database:dbClient->execute(` 
             DELETE FROM users WHERE user_id = ${id} 
-        `); 
-        if result.affectedRowCount == 0 { 
-            return { 
-                message: "User not found" 
-            }; 
-        } 
-        return { 
-            message: "User deleted successfully" 
-        }; 
-    } 
+        `);
+        if result.affectedRowCount == 0 {
+            return {
+                message: "User not found"
+            };
+        }
+        return {
+            message: "User deleted successfully"
+        };
+    }
 
     // Only admin and manager can update users
     resource function PUT details/[int userid](http:Request req, @http:Payload User user) returns json|error { 
@@ -128,16 +129,16 @@ The ResourceHub Team`
         }
         sql:ExecutionResult result = check database:dbClient->execute(` 
             UPDATE users set usertype = ${user.usertype},bio = ${user.bio} WHERE user_id = ${userid} 
-        `); 
-        if result.affectedRowCount == 0 { 
-            return { 
-                message: "User not found" 
-            }; 
-        } 
-        return { 
-            message: "User updated successfully" 
-        }; 
-    } 
+        `);
+        if result.affectedRowCount == 0 {
+            return {
+                message: "User not found"
+            };
+        }
+        return {
+            message: "User updated successfully"
+        };
+    }
 }
 
 public function startUserManagementService() returns error? {

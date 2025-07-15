@@ -1,20 +1,21 @@
 import ballerina/http;
 import ballerina/io;
+import ballerina/jwt;
 import ballerina/sql;
 import ballerina/jwt;
 import ResourceHub.database;
 import ResourceHub.common;
 
-public type MealEvent record {| 
-    int requestedmeal_id?; 
-    int mealtime_id; 
-    int mealtype_id; 
-    string mealtype_name?; 
-    string mealtime_name?; 
-    string username?; 
-    int user_id; 
-    string submitted_date; 
-    string meal_request_date; 
+public type MealEvent record {|
+    int requestedmeal_id?;
+    int mealtime_id;
+    int mealtype_id;
+    string mealtype_name?;
+    string mealtime_name?;
+    string username?;
+    int user_id;
+    string submitted_date;
+    string meal_request_date;
 |};
 
 @http:ServiceConfig { 
@@ -36,13 +37,13 @@ service /calendar on database:mainListener {
             FROM requestedmeals
             JOIN users ON requestedmeals.user_id = users.user_id 
             join mealtypes ON requestedmeals.meal_type_id = mealtypes.mealtype_id
-            join mealtimes ON requestedmeals.meal_time_id = mealtimes.mealtime_id`); 
-        MealEvent[] events = []; 
-        check resultStream.forEach(function(MealEvent event) { 
-            events.push(event); 
-        }); 
-        return events; 
-    } 
+            join mealtimes ON requestedmeals.meal_time_id = mealtimes.mealtime_id`);
+        MealEvent[] events = [];
+        check resultStream.forEach(function(MealEvent event) {
+            events.push(event);
+        });
+        return events;
+    }
 
     // Only admin, manager, and User can view their own meal events
     resource function get mealevents/[int userid](http:Request req) returns MealEvent[]|error { 
@@ -96,6 +97,6 @@ service /calendar on database:mainListener {
     } 
 } 
 
-public function startCalendarService() returns error? { 
-    io:println("Calander service started on port 9090"); 
+public function startCalendarService() returns error? {
+    io:println("Calander service started on port 9090");
 }

@@ -1,12 +1,11 @@
 import ballerina/http;
-import ballerina/sql;
 import ballerina/io;
 import ballerina/jwt;
 import ResourceHub.database;
 import ResourceHub.common;
 
 // Defines the structure of a MealType record
-public type MealType record {| 
+public type MealType record {|
     int mealtype_id?;
     string mealtype_name;
     string mealtype_image_url;
@@ -107,6 +106,7 @@ service /mealtype on database:mainListener{
         return http:OK;
     }
 }
+
 
 // Log service start
 public function startMealTypeService() returns error? {

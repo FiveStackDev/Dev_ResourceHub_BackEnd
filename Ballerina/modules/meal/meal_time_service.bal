@@ -1,12 +1,11 @@
 import ballerina/http;
-import ballerina/sql;
 import ballerina/io;
 import ballerina/jwt;
 import ResourceHub.database;
 import ResourceHub.common;
 
 // Defines the structure of a MealTime object
-public type MealTime record {| 
+public type MealTime record {|
     int mealtime_id?;
     string mealtime_name;
     string mealtime_image_url;

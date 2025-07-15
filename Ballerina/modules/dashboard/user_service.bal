@@ -1,4 +1,3 @@
-import ballerina/io;
 import ballerina/http;
 import ballerina/sql;
 import ballerina/jwt;
@@ -219,3 +218,4 @@ public function startDashboardUserService() returns error? {
     // Function to integrate with the service start pattern
     io:println("Dashboard User service started on port 9092");
 }
+

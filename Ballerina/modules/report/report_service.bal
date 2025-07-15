@@ -1,6 +1,8 @@
 import ballerina/email;
 import ballerina/http;
 import ballerina/io;
+import ballerina/http;
+import ballerina/io;
 import ballerina/mime;
 import ballerina/sql;
 import ResourceHub.database;
@@ -109,6 +111,9 @@ function generateAndSendReport(string endpoint, string reportTitle, string fileN
         "Authorization": "Basic " + ("api:" + PDFSHIFT_API_KEY).toBytes().toBase64(),
         "Content-Type": "application/json"
     }
+        "Authorization": "Basic " + ("api:" + PDFSHIFT_API_KEY).toBytes().toBase64(),
+        "Content-Type": "application/json"
+    }
     );
 
     byte[] pdfBytes = check pdfResponse.getBinaryPayload();
@@ -119,7 +124,7 @@ function generateAndSendReport(string endpoint, string reportTitle, string fileN
     sql:ParameterizedQuery pq = `SELECT u.email FROM schedulereports s JOIN users u ON s.user_id = u.user_id WHERE s.report_name = ${reportName} AND s.frequency = ${frequency}`;
     stream<record {| string email; |}, error?> emailStream = database:dbClient->query(pq);
     string[] emailList = [];
-    error? e = emailStream.forEach(function(record {| string email; |} row) {
+    error? e = emailStream.forEach(function(record {|string email;|} row) {
         emailList.push(row.email);
     });
     check e;
