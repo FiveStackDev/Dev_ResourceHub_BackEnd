@@ -1,7 +1,15 @@
 import ballerina/http;
 import ballerina/io;
-import ballerina/jwt;
 import ballerina/sql;
+import ballerina/jwt;
+import ResourceHub.database;
+import ResourceHub.common;
+
+type MealTime record {|
+    int mealtime_id;
+    string mealtime_name;
+    string? mealtime_image_url?;
+|};
 
 type MonthlyUserData record {|
     int month;
@@ -43,28 +51,28 @@ type ResourceAllocationData record {|
         allowHeaders: ["Content-Type", "Authorization"]
     }
 }
-service /dashboard/admin on ln {
+service /dashboard/admin on database:dashboardListener {
     // Only admin can access dashboard admin endpoints
     resource function get stats(http:Request req) returns json|error {
-        jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
+        jwt:Payload payload = check common:getValidatedPayload(req);
+        if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
         // Existing counts
-        record {|int user_count;|} userResult = check dbClient->queryRow(`SELECT COUNT(user_id) AS user_count FROM users`);
+        record {|int user_count;|} userResult = check database:dbClient->queryRow(`SELECT COUNT(user_id) AS user_count FROM users`);
         int userCount = userResult.user_count;
 
-        record {|int mealevents_count;|} mealResult = check dbClient->queryRow(`SELECT COUNT(requestedmeal_id) AS mealevents_count FROM requestedmeals`);
+        record {|int mealevents_count;|} mealResult = check database:dbClient->queryRow(`SELECT COUNT(requestedmeal_id) AS mealevents_count FROM requestedmeals`);
         int mealEventsCount = mealResult.mealevents_count;
 
-        record {|int assetrequests_count;|} assetRequestsResult = check dbClient->queryRow(`SELECT COUNT(requestedasset_id) AS assetrequests_count FROM requestedassets`);
+        record {|int assetrequests_count;|} assetRequestsResult = check database:dbClient->queryRow(`SELECT COUNT(requestedasset_id) AS assetrequests_count FROM requestedassets`);
         int assetRequestsCount = assetRequestsResult.assetrequests_count;
 
-        record {|int maintenance_count;|} maintenanceResult = check dbClient->queryRow(`SELECT COUNT(maintenance_id) AS maintenance_count FROM maintenance`);
+        record {|int maintenance_count;|} maintenanceResult = check database:dbClient->queryRow(`SELECT COUNT(maintenance_id) AS maintenance_count FROM maintenance`);
         int maintenanceCount = maintenanceResult.maintenance_count;
 
         // Query to get user count by month
-        stream<MonthlyUserData, sql:Error?> monthlyUserStream = dbClient->query(
+        stream<MonthlyUserData, sql:Error?> monthlyUserStream = database:dbClient->query(
         `SELECT EXTRACT(MONTH FROM created_at) AS month, COUNT(user_id) AS count 
          FROM users 
          GROUP BY EXTRACT(MONTH FROM created_at) 
@@ -86,7 +94,7 @@ service /dashboard/admin on ln {
         }
 
         // Query to get meal events count by month
-        stream<MonthlyMealData, sql:Error?> monthlyMealStream = dbClient->query(
+        stream<MonthlyMealData, sql:Error?> monthlyMealStream = database:dbClient->query(
         `SELECT EXTRACT(MONTH FROM meal_request_date) AS month, COUNT(requestedmeal_id) AS count 
          FROM requestedmeals 
          GROUP BY EXTRACT(MONTH FROM meal_request_date) 
@@ -108,7 +116,7 @@ service /dashboard/admin on ln {
         }
 
         // Query to get asset requests count by month
-        stream<MonthlyAssetRequestData, sql:Error?> monthlyAssetRequestStream = dbClient->query(
+        stream<MonthlyAssetRequestData, sql:Error?> monthlyAssetRequestStream = database:dbClient->query(
         `SELECT EXTRACT(MONTH FROM submitted_date) AS month, COUNT(requestedasset_id) AS count 
          FROM requestedassets
          GROUP BY EXTRACT(MONTH FROM submitted_date) 
@@ -130,7 +138,7 @@ service /dashboard/admin on ln {
         }
 
         // Query to get maintenance count by month
-        stream<MonthlyMaintenanceData, sql:Error?> monthlyMaintenanceStream = dbClient->query(
+        stream<MonthlyMaintenanceData, sql:Error?> monthlyMaintenanceStream = database:dbClient->query(
         `SELECT EXTRACT(MONTH FROM submitted_date) AS month, COUNT(maintenance_id) AS count 
          FROM maintenance 
          GROUP BY EXTRACT(MONTH FROM submitted_date) 
@@ -182,8 +190,8 @@ service /dashboard/admin on ln {
 
     // Resource to get data for resource cards
     resource function get resources(http:Request req) returns json|error {
-        jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
+        jwt:Payload payload = check common:getValidatedPayload(req);
+        if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
 
@@ -211,12 +219,12 @@ service /dashboard/admin on ln {
 
     // Resource to get meal distribution data for pie chart
     resource function get mealdistribution(http:Request req) returns json|error {
-        jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
+        jwt:Payload payload = check common:getValidatedPayload(req);
+        if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
         // Query to get all meal types from mealtimes
-        stream<MealTime, sql:Error?> mealTimeStream = dbClient->query(
+        stream<MealTime, sql:Error?> mealTimeStream = database:dbClient->query(
         `SELECT mealtime_id, mealtime_name FROM mealtimes ORDER BY mealtime_id`,
         MealTime
         );
@@ -229,7 +237,7 @@ service /dashboard/admin on ln {
             };
 
         // Query to get meal event counts by day of week and meal type
-        stream<MealDistributionData, sql:Error?> mealDistributionStream = dbClient->query(
+        stream<MealDistributionData, sql:Error?> mealDistributionStream = database:dbClient->query(
         `SELECT DAYOFWEEK(meal_request_date) AS day_of_week, mealtimes.mealtime_name, COUNT(requestedmeal_id) AS count 
          FROM requestedmeals 
          JOIN mealtimes ON requestedmeals.meal_time_id = mealtimes.mealtime_id
@@ -293,12 +301,12 @@ service /dashboard/admin on ln {
 
     // Resource to get resource allocation data
     resource function get resourceallocation(http:Request req) returns json|error {
-        jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
+        jwt:Payload payload = check common:getValidatedPayload(req);
+        if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
         // Query to get total and allocated quantities by category
-        stream<ResourceAllocationData, sql:Error?> allocationStream = dbClient->query(
+        stream<ResourceAllocationData, sql:Error?> allocationStream = database:dbClient->query(
         `SELECT 
             category,
             SUM(quantity) AS total
@@ -335,5 +343,5 @@ service /dashboard/admin on ln {
 
 public function startDashboardAdminService() returns error? {
     // Function to integrate with the service start pattern
-    io:println("Dashboard Admin service started on port 9090");
+    io:println("Dashboard Admin service started on port 9092");
 }

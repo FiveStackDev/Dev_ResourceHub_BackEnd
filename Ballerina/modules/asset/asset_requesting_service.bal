@@ -1,14 +1,16 @@
 import ballerina/http;
 import ballerina/io;
-import ballerina/jwt;
 import ballerina/sql;
+import ballerina/jwt;
+import ResourceHub.database;
+import ResourceHub.common;
 
 public type AssetRequest record {|
     int requestedasset_id?;
     int user_id;
     int asset_id;
     string category?;
-    string submitted_date;
+    string submitted_date ;
     string handover_date;
     int remaining_days?;
     int quantity;
@@ -26,19 +28,15 @@ public type AssetRequest record {|
         allowHeaders: ["Content-Type", "Authorization"]
     }
 }
-service /assetrequest on ln {
-    // Role-based access control: validate JWT and roles for secure endpoints
-    // Example: Add 'http:Request req' as a parameter and check roles using a helper like getValidatedPayload(req) and hasAnyRole(...)
-    // You should implement or import getValidatedPayload and hasAnyRole as in account_settings_service.bal
+service /assetrequest on database:mainListener {
 
-    // ...existing code...
     resource function get details(http:Request req) returns AssetRequest[]|error {
         // Validate JWT and check for allowed roles (admin, manager, user)
-        jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
+        jwt:Payload payload = check common:getValidatedPayload(req);
+        if (!common:hasAnyRole(payload, ["Admin","SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
-        stream<AssetRequest, sql:Error?> resultstream = dbClient->query
+        stream<AssetRequest, sql:Error?> resultstream = database:dbClient->query
         (`SELECT 
         ra.requestedasset_id,
         u.user_id,
@@ -67,11 +65,11 @@ service /assetrequest on ln {
     }
 
     resource function get details/[int userid](http:Request req) returns AssetRequest[]|error {
-        jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
+        jwt:Payload payload = check common:getValidatedPayload(req);
+        if (!common:hasAnyRole(payload, ["Admin" ,"User","SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
-        stream<AssetRequest, sql:Error?> resultstream = dbClient->query
+        stream<AssetRequest, sql:Error?> resultstream = database:dbClient->query
         (`SELECT 
         ra.requestedasset_id,
         u.user_id,
@@ -89,7 +87,7 @@ service /assetrequest on ln {
         FROM requestedassets ra
         JOIN users u ON ra.user_id = u.user_id
         JOIN assets a ON ra.asset_id = a.asset_id
-        where ra.user_id=${userid};`);
+        WHERE ra.user_id = ${userid};`);
 
         AssetRequest[] assetrequests = [];
 
@@ -101,93 +99,88 @@ service /assetrequest on ln {
     }
 
     resource function post add(http:Request req, @http:Payload AssetRequest assetrequest) returns json|error {
-        jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
+        jwt:Payload payload = check common:getValidatedPayload(req);
+        if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to add asset requests");
         }
-        io:println("Received Asset Request data :" + assetrequest.toJsonString());
 
-        sql:ExecutionResult result = check dbClient->execute(`
-            INSERT INTO requestedassets (user_id, asset_id, submitted_date , handover_date, quantity,is_returning)
-            VALUES (${assetrequest.user_id}, ${assetrequest.asset_id}, ${assetrequest.submitted_date}, ${assetrequest.handover_date}, ${assetrequest.quantity},${assetrequest.is_returning})
+        sql:ExecutionResult result = check database:dbClient->execute(`
+            INSERT INTO requestedassets (user_id, asset_id, submitted_date, handover_date, quantity, status, is_returning)
+            VALUES (${assetrequest.user_id}, ${assetrequest.asset_id}, ${assetrequest.submitted_date}, 
+                    ${assetrequest.handover_date}, ${assetrequest.quantity}, 'pending', false)
         `);
 
         if result.affectedRowCount == 0 {
-            return error("Failed to add asset request");
+            return {message: "Failed to add asset request"};
         }
-
-        return {
-            message: "Asset request added successfully",
-            assetrequest: assetrequest
-        };
+        return {message: "Asset request added successfully"};
     }
 
     resource function delete details/[int id](http:Request req) returns json|error {
-        jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
+        jwt:Payload payload = check common:getValidatedPayload(req);
+        if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to delete asset requests");
         }
-        sql:ExecutionResult result = check dbClient->execute(`
+
+        sql:ExecutionResult result = check database:dbClient->execute(`
             DELETE FROM requestedassets WHERE requestedasset_id = ${id}
         `);
 
         if result.affectedRowCount == 0 {
-            return {
-                message: "Asset request not found"
-            };
+            return {message: "Asset request not found"};
         }
-        return {
-            message: "Asset request deleted successfully"
-        };
+        return {message: "Asset request deleted successfully"};
     }
 
     resource function put details/[int id](http:Request req, @http:Payload AssetRequest assetrequest) returns json|error {
-        jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
+        jwt:Payload payload = check common:getValidatedPayload(req);
+        if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to update asset requests");
         }
-        sql:ExecutionResult result = check dbClient->execute(`
+
+        sql:ExecutionResult result = check database:dbClient->execute(`
             UPDATE requestedassets 
-            SET  handover_date = ${assetrequest.handover_date}, quantity = ${assetrequest.quantity} , status = ${assetrequest.status},is_returning = ${assetrequest.is_returning}
+            SET status = ${assetrequest.status ?: "pending"}, 
+            is_returning = ${assetrequest.is_returning ?: false},
+            quantity = ${assetrequest.quantity},
+            handover_date = ${assetrequest.handover_date}
             WHERE requestedasset_id = ${id}
         `);
 
         if result.affectedRowCount == 0 {
-            return {
-                message: "Asset request not found"
-            };
+            return {message: "Asset request not found"};
         }
-
-        return {
-            message: "Asset request updated successfully",
-            assetrequest: assetrequest
-        };
+        return {message: "Asset request updated successfully"};
     }
 
     resource function get dueassets(http:Request req) returns AssetRequest[]|error {
-        jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
+        jwt:Payload payload = check common:getValidatedPayload(req);
+        if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access due assets");
         }
-        stream<AssetRequest, sql:Error?> resultstream = dbClient->query
-        (`select u.profile_picture_url,
+        
+        stream<AssetRequest, sql:Error?> resultstream = database:dbClient->query
+        (`SELECT 
+        ra.requestedasset_id,
+        u.user_id,
+        u.profile_picture_url,
         u.username,
         a.asset_id,
         a.asset_name,
         a.category,
-        ra.submitted_date ,
+        ra.submitted_date,
         ra.handover_date,
         DATEDIFF(ra.handover_date, CURDATE()) AS remaining_days,
         ra.quantity,
-        ra.status
-        FROM requestedassets  ra
+        ra.status,
+        ra.is_returning
+        FROM requestedassets ra
         JOIN users u ON ra.user_id = u.user_id
         JOIN assets a ON ra.asset_id = a.asset_id
-        WHERE  DATEDIFF(ra.handover_date, CURDATE()) < 0
+        WHERE DATEDIFF(ra.handover_date, CURDATE()) < 0
         AND ra.is_returning = true
         AND ra.status = 'Accepted'
-        ORDER BY remaining_days ASC;`
-        );
+        ORDER BY remaining_days ASC;`);
 
         AssetRequest[] assetrequests = [];
 
@@ -199,29 +192,34 @@ service /assetrequest on ln {
     }
 
     resource function get dueassets/[int userid](http:Request req) returns AssetRequest[]|error {
-        jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
+        jwt:Payload payload = check common:getValidatedPayload(req);
+        if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access due assets");
         }
-        stream<AssetRequest, sql:Error?> resultstream = dbClient->query
+        
+        stream<AssetRequest, sql:Error?> resultstream = database:dbClient->query
         (`SELECT 
+        ra.requestedasset_id,
+        u.user_id,
         u.profile_picture_url,
         u.username,
         a.asset_id,
         a.asset_name,
         a.category,
-        ra.submitted_date ,
+        ra.submitted_date,
         ra.handover_date,
         DATEDIFF(ra.handover_date, CURDATE()) AS remaining_days,
-        ra.quantity
+        ra.quantity,
+        ra.status,
+        ra.is_returning
         FROM requestedassets ra
         JOIN users u ON ra.user_id = u.user_id
         JOIN assets a ON ra.asset_id = a.asset_id
-        WHERE DATEDIFF(ra.handover_date, CURDATE()) < 0 AND ra.user_id = ${userid}
+        WHERE DATEDIFF(ra.handover_date, CURDATE()) < 0 
+        AND ra.user_id = ${userid}
         AND ra.is_returning = true
         AND ra.status = 'Accepted'
-        ORDER BY remaining_days ASC;`
-        );
+        ORDER BY remaining_days ASC;`);
 
         AssetRequest[] assetrequests = [];
 
@@ -233,6 +231,6 @@ service /assetrequest on ln {
     }
 }
 
-public function AssetRequestService() {
-    io:println("Asset request service work on port :9090");
+public function startAssetRequestService() returns error? {
+    io:println("Asset request service started on port 9090");
 }

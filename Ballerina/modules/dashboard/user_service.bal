@@ -1,8 +1,9 @@
-import ballerina/http;
 import ballerina/io;
-import ballerina/jwt;
+import ballerina/http;
 import ballerina/sql;
-import ballerina/time;
+import ballerina/jwt;
+import ResourceHub.database;
+import ResourceHub.common;
 
 // Dashboard User Service to handle user dashboard data
 @http:ServiceConfig {
@@ -13,16 +14,16 @@ import ballerina/time;
     }
 }
 
-service /dashboard/user on ln {
+service /dashboard/user on database:dashboardListener {
 
     // Only admin, manager, and User can view user dashboard stats
     resource function get stats/[int userId](http:Request req) returns json|error {
-        jwt:Payload payload = check getValidatedPayload(req);
-        if (!hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
+        jwt:Payload payload = check common:getValidatedPayload(req);
+        if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
         // Query for meals today (assuming meal_request_date is a timestamp)
-        record {|int meals_today;|} mealsTodayResult = check dbClient->queryRow(
+        record {|int meals_today;|} mealsTodayResult = check database:dbClient->queryRow(
             `SELECT COUNT(requestedmeal_id) AS meals_today 
              FROM requestedmeals 
              WHERE user_id = ${userId} 
@@ -31,7 +32,7 @@ service /dashboard/user on ln {
         int mealsToday = mealsTodayResult.meals_today;
 
         // Query for total assets borrowed by the user
-        record {|int assets_count;|} assetsResult = check dbClient->queryRow(
+        record {|int assets_count;|} assetsResult = check database:dbClient->queryRow(
             `SELECT COUNT(requestedasset_id) AS assets_count 
              FROM requestedassets
              WHERE user_id = ${userId}`
@@ -39,7 +40,7 @@ service /dashboard/user on ln {
         int assetsCount = assetsResult.assets_count;
 
         // Query for total maintenance requests by the user
-        record {|int maintenance_count;|} maintenanceResult = check dbClient->queryRow(
+        record {|int maintenance_count;|} maintenanceResult = check database:dbClient->queryRow(
             `SELECT COUNT(maintenance_id) AS maintenance_count 
              FROM maintenance 
              WHERE user_id = ${userId}`
@@ -47,7 +48,7 @@ service /dashboard/user on ln {
         int maintenanceCount = maintenanceResult.maintenance_count;
 
         // Query for monthly meal counts
-        stream<record {|int month; int count;|}, sql:Error?> monthlyMealStream = dbClient->query(
+        stream<record {|int month; int count;|}, sql:Error?> monthlyMealStream = database:dbClient->query(
             `SELECT EXTRACT(MONTH FROM meal_request_date) AS month, COUNT(requestedmeal_id) AS count 
              FROM requestedmeals
              WHERE user_id = ${userId} 
@@ -61,7 +62,7 @@ service /dashboard/user on ln {
             };
 
         // Query for monthly asset request counts
-        stream<record {|int month; int count;|}, sql:Error?> monthlyAssetStream = dbClient->query(
+        stream<record {|int month; int count;|}, sql:Error?> monthlyAssetStream = database:dbClient->query(
             `SELECT EXTRACT(MONTH FROM submitted_date) AS month, COUNT(requestedasset_id) AS count 
              FROM requestedassets
              WHERE user_id = ${userId} 
@@ -75,7 +76,7 @@ service /dashboard/user on ln {
             };
 
         // Query for monthly maintenance request counts
-        stream<record {|int month; int count;|}, sql:Error?> monthlyMaintenanceStream = dbClient->query(
+        stream<record {|int month; int count;|}, sql:Error?> monthlyMaintenanceStream = database:dbClient->query(
             `SELECT EXTRACT(MONTH FROM submitted_date) AS month, COUNT(maintenance_id) AS count 
              FROM maintenance 
              WHERE user_id = ${userId} 
@@ -99,18 +100,21 @@ service /dashboard/user on ln {
         };
     }
 
-    // Get user recent activities
     // Get recent activities for a given user
-    // Get recent activities for a given user
-    resource function get activities/[int userId]() returns json[]|error {
+    resource function get activities/[int userId](http:Request req) returns json[]|error {
+        jwt:Payload payload = check common:getValidatedPayload(req);
+        if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
+            return error("Forbidden: You do not have permission to access user activities");
+        }
+
         json[] activities = [];
 
         // Fetch the last meal request
         stream<record {|
             string requestedmeal_id;
             string meal_type_id;
-            time:Date meal_request_date;
-        |}, sql:Error?> mealStream = dbClient->query(
+            string meal_request_date;
+        |}, sql:Error?> mealStream = database:dbClient->query(
             `SELECT requestedmeal_id, meal_type_id, meal_request_date 
              FROM requestedmeals 
              WHERE user_id = ${userId} 
@@ -119,16 +123,12 @@ service /dashboard/user on ln {
         );
         check from var meal in mealStream
             do {
-                // Convert time:Date to string (e.g., "2025-05-02T00:00:00Z")
-                string dateStr = meal.meal_request_date.year.toString() + "-" +
-                                meal.meal_request_date.month.toString().padStart(2, "0") + "-" +
-                                meal.meal_request_date.day.toString().padStart(2, "0");
                 activities.push({
                     "id": meal.requestedmeal_id,
                     "type": "meal",
                     "title": "Last Meal Request",
                     "description": "Your " + meal.meal_type_id + " request has been processed",
-                    "timestamp": dateStr
+                    "timestamp": meal.meal_request_date
                 });
             };
 
@@ -136,8 +136,8 @@ service /dashboard/user on ln {
         stream<record {|
             string maintenance_id;
             string description;
-            time:Date submitted_date;
-        |}, sql:Error?> maintenanceStream = dbClient->query(
+            string submitted_date;
+        |}, sql:Error?> maintenanceStream = database:dbClient->query(
             `SELECT  maintenance_id, description, submitted_date 
              FROM maintenance 
              WHERE user_id = ${userId} 
@@ -146,16 +146,12 @@ service /dashboard/user on ln {
         );
         check from var maintenance in maintenanceStream
             do {
-                // Convert time:Date to string
-                string dateStr = maintenance.submitted_date.year.toString() + "-" +
-                                maintenance.submitted_date.month.toString().padStart(2, "0") + "-" +
-                                maintenance.submitted_date.day.toString().padStart(2, "0");
                 activities.push({
                     "id": maintenance.maintenance_id,
                     "type": "maintenance",
                     "title": "Last Maintenance notified",
                     "description": "Your maintenance request for " + maintenance.description + " has been processed",
-                    "timestamp": dateStr
+                    "timestamp": maintenance.submitted_date
                 });
             };
 
@@ -163,8 +159,8 @@ service /dashboard/user on ln {
         stream<record {|
             string requestedasset_id;
             string asset_name;
-            time:Date submitted_date;
-        |}, sql:Error?> assetStream = dbClient->query(
+            string submitted_date;
+        |}, sql:Error?> assetStream = database:dbClient->query(
             `SELECT ar.requestedasset_id, a.asset_name, submitted_date 
              FROM requestedassets ar 
              join assets a on a.asset_id=ar.asset_id
@@ -174,16 +170,12 @@ service /dashboard/user on ln {
         );
         check from var asset in assetStream
             do {
-                // Convert time:Date to string
-                string dateStr = asset.submitted_date.year.toString() + "-" +
-                                asset.submitted_date.month.toString().padStart(2, "0") + "-" +
-                                asset.submitted_date.day.toString().padStart(2, "0");
                 activities.push({
                     "id": asset.requestedasset_id,
                     "type": "asset",
                     "title": "Last Asset Request",
                     "description": asset.asset_name + " has been assigned to you",
-                    "timestamp": dateStr
+                    "timestamp": asset.submitted_date
                 });
             };
 
@@ -191,13 +183,39 @@ service /dashboard/user on ln {
     }
 
     // Get quick actions available for the user
+    resource function get quickactions(http:Request req) returns json|error {
+        jwt:Payload payload = check common:getValidatedPayload(req);
+        if (!common:hasAnyRole(payload, ["Admin","User","SuperAdmin"])) {
+            return error("Forbidden: You do not have permission to access quick actions");
+        }
+
+        return {
+            actions: [
+                {
+                    title: "Request Asset",
+                    icon: "asset",
+                    path: "/assets/request"
+                },
+                {
+                    title: "Book Meal",
+                    icon: "meal",
+                    path: "/meals/book"
+                },
+                {
+                    title: "Report Issue",
+                    icon: "maintenance",
+                    path: "/maintenance/report"
+                }
+            ]
+        };
+    }
 
     resource function options .() returns http:Ok {
-        return http:OK;
+        return {};
     }
 }
 
 public function startDashboardUserService() returns error? {
     // Function to integrate with the service start pattern
-    io:println("Dashboard User service started on port 9090");
+    io:println("Dashboard User service started on port 9092");
 }

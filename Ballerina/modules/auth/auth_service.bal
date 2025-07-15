@@ -3,10 +3,14 @@ import ballerina/http;
 import ballerina/io;
 import ballerina/jwt;
 import ballerina/sql;
+import ResourceHub.database;
+import ResourceHub.common;
 
 type ForgotPassword record {
     string email;
 };
+
+// JWT configuration is now in jwt_utils.bal to avoid duplication
 
 @http:ServiceConfig {
     cors: {
@@ -15,13 +19,13 @@ type ForgotPassword record {
         allowHeaders: ["Content-Type", "Authorization"]
     }
 }
-service /auth on ln {
+service /auth on database:authListener {
 
     // Login resource - issues JWT token with role claim
     resource function post login(@http:Payload record {string email; string password;} credentials) returns json|error {
 
         sql:ParameterizedQuery query = `SELECT username, user_id, email, password, usertype, profile_picture_url FROM users WHERE email = ${credentials.email}`;
-        record {|string username; int user_id; string email; string password; string usertype; string profile_picture_url;|}|sql:Error result = dbClient->queryRow(query);
+        record {|string username; int user_id; string email; string password; string usertype; string profile_picture_url;|}|sql:Error result = database:dbClient->queryRow(query);
 
         if (result is sql:Error) {
             if (result is sql:NoRowsError) {
@@ -73,7 +77,7 @@ service /auth on ln {
 
         string token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
 
-        jwt:Payload|error payload = check jwt:validate(token, jwtValidatorConfig);
+        jwt:Payload|error payload = check jwt:validate(token, common:jwtValidatorConfig);
         if (payload is jwt:Payload) {
             io:println("Protected data accessed successfully by user: " + <string>payload["username"]);
             return "Protected data accessed successfully";
@@ -93,7 +97,7 @@ service /auth on ln {
 
         string token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
 
-        jwt:Payload|error payload = check jwt:validate(token, jwtValidatorConfig);
+        jwt:Payload|error payload = check jwt:validate(token, common:jwtValidatorConfig);
         if (payload is jwt:Payload) {
             anydata roleClaim = payload["role"];
             if (roleClaim is string && roleClaim == "admin") {
@@ -117,11 +121,11 @@ service /auth on ln {
         }
 
         // Generate simple random password
-        string randomPassword = check generateSimplePassword(8);
+        string randomPassword = check common:generateSimplePassword(8);
 
         // Update password in database
         sql:ParameterizedQuery updateQuery = `UPDATE users SET password = ${randomPassword} WHERE email = ${password.email}`;
-        sql:ExecutionResult updateResult = check dbClient->execute(updateQuery);
+        sql:ExecutionResult updateResult = check database:dbClient->execute(updateQuery);
 
         if updateResult.affectedRowCount == 0 {
             return error("Failed to reset password", statusCode = 500);
@@ -148,7 +152,7 @@ ResourceHub
 Support Team`
         };
 
-        error? emailResult = emailClient->sendMessage(resetEmail);
+        error? emailResult = common:emailClient->sendMessage(resetEmail);
         if emailResult is error {
             io:println("Error sending password email: ", emailResult.message());
             // Don't fail the request if email fails, but log it
@@ -158,4 +162,8 @@ Support Team`
             message: "Password reset successful. Check your email for the temporary password."
         };
     }
+}
+
+public function startAuthService() returns error? {
+    io:println("Auth service started on port 9094");
 }
