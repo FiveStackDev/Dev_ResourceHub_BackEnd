@@ -2,6 +2,8 @@ import ballerina/email;
 import ballerina/http;
 import ballerina/jwt;
 import ballerina/sql;
+import ResourceHub.database;
+import ResourceHub.common;
 
 // Profile data structure for user settings
 public type Profile record {|
@@ -38,26 +40,21 @@ public type Password record {|
         allowHeaders: ["Content-Type", "Authorization"]
     }
 }
-service /settings on ln {
+service /settings on database:ln {
 
     // Fetch user profile details by user ID - accessible by user themselves or admin
     resource function get details/[int userid](http:Request req) returns Profile[]|error {
-        jwt:Payload payload = check getValidatedPayload(req);
+        jwt:Payload payload = check common:getValidatedPayload(req);
 
         // Only allow users with specific roles (e.g., admin, manager)
-        if (!hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
+        if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
 
-        stream<Profile, sql:Error?> resultStream = dbClient->query(`
-            SELECT username,
-            email,
-            phone_number,
-            profile_picture_url,
-            usertype,
-            bio
-            FROM users
-            WHERE user_id = ${userid}`);
+        stream<Profile, sql:Error?> resultStream = database:dbClient->query(`
+            SELECT username, profile_picture_url, bio, usertype, email, phone_number 
+            FROM users WHERE user_id = ${userid}
+        `);
 
         Profile[] profiles = [];
         check resultStream.forEach(function(Profile profile) {
@@ -69,18 +66,17 @@ service /settings on ln {
 
     // Update username, profile picture, and bio - user can update own profile, admin can update any
     resource function put profile/[int userid](http:Request req, @http:Payload Profile profile) returns json|error {
-        jwt:Payload payload = check getValidatedPayload(req);
+        jwt:Payload payload = check common:getValidatedPayload(req);
 
         // Only allow users with specific roles (e.g., admin, manager)
-        if (!hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
-            return error("Forbidden: You do not have permission to update this profile");
+        if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
+            return error("Forbidden: You do not have permission to update profiles");
         }
 
-        sql:ExecutionResult result = check dbClient->execute(`
-            UPDATE users SET 
-            username = ${profile.username}, 
-            profile_picture_url = ${profile.profile_picture_url}, 
-            bio = ${profile.bio} 
+        sql:ExecutionResult result = check database:dbClient->execute(`
+            UPDATE users SET username = ${profile.username}, 
+                           profile_picture_url = ${profile.profile_picture_url}, 
+                           bio = ${profile.bio ?: ""}
             WHERE user_id = ${userid}
         `);
 
@@ -93,17 +89,15 @@ service /settings on ln {
 
     // Update email address - user can update own email, admin can update any
     resource function put email/[int userid](http:Request req, @http:Payload Email email) returns json|error {
-        jwt:Payload payload = check getValidatedPayload(req);
+        jwt:Payload payload = check common:getValidatedPayload(req);
 
         // Only allow users with specific roles (e.g., admin, manager)
-        if (!hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
-            return error("Forbidden: You do not have permission to update this email");
+        if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
+            return error("Forbidden: You do not have permission to update email");
         }
 
-        sql:ExecutionResult result = check dbClient->execute(`
-            UPDATE users SET 
-                email = ${email.email} 
-            WHERE user_id = ${userid}
+        sql:ExecutionResult result = check database:dbClient->execute(`
+            UPDATE users SET email = ${email.email} WHERE user_id = ${userid}
         `);
 
         if result.affectedRowCount > 0 {
@@ -117,10 +111,8 @@ service /settings on ln {
     resource function post sendEmail(@http:Payload Email email) returns json|error {
         email:Message resetEmail = {
             to: [email.email],
-            subject: "Verify Your Email Address to Complete the Update",
-            body: string `Thank you for signing up with ResourceHub! To complete your Changes and secure your account, please verify your email address by entering the code below in the app
-
-🔐 Your Verification Code: ${email.code ?: "!!error!!"}
+            subject: "🔐 Your Verification Code",
+            body: string `🔐 Your Verification Code: ${email.code ?: "!!error!!"}
 
 Please enter this code within the next few minutes to complete the verification process. This helps us ensure the security of your account and provide you with the best experience.
 
@@ -131,7 +123,7 @@ Need help? Our support team is here for you. Feel free to contact us at resource
 Thanks for choosing ResourceHub. We're excited to have you on board!`
         };
 
-        error? emailResult = emailClient->sendMessage(resetEmail);
+        error? emailResult = common:emailClient->sendMessage(resetEmail);
         if emailResult is error {
             return error("Error sending Code to email");
         }
@@ -143,17 +135,15 @@ Thanks for choosing ResourceHub. We're excited to have you on board!`
 
     // Update phone number - user can update own phone, admin can update any
     resource function put phone/[int userid](http:Request req, @http:Payload Phone phone) returns json|error {
-        jwt:Payload payload = check getValidatedPayload(req);
+        jwt:Payload payload = check common:getValidatedPayload(req);
 
         // Only allow users with specific roles (e.g., admin, manager)
-        if (!hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
-            return error("Forbidden: You do not have permission to update this phone number");
+        if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
+            return error("Forbidden: You do not have permission to update phone");
         }
 
-        sql:ExecutionResult result = check dbClient->execute(`
-            UPDATE users SET 
-                phone_number = ${phone.phone_number} 
-            WHERE user_id = ${userid}
+        sql:ExecutionResult result = check database:dbClient->execute(`
+            UPDATE users SET phone_number = ${phone.phone_number} WHERE user_id = ${userid}
         `);
 
         if result.affectedRowCount > 0 {
@@ -165,39 +155,32 @@ Thanks for choosing ResourceHub. We're excited to have you on board!`
 
     // Update password after validating current password - user can update own password, admin can update any
     resource function put password/[int userid](http:Request req, @http:Payload Password password) returns json|error {
-        jwt:Payload payload = check getValidatedPayload(req);
+        jwt:Payload payload = check common:getValidatedPayload(req);
 
         // Only allow users with specific roles (e.g., admin, manager)
-        if (!hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
-            return error("Forbidden: You do not have permission to update this password");
+        if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
+            return error("Forbidden: You do not have permission to update password");
         }
 
-        // Fetch the current password for validation
-        stream<record {|string password;|}, sql:Error?> result = dbClient->query(`
+        // Verify current password
+        record {|string password;|}|sql:Error currentPasswordResult = database:dbClient->queryRow(`
             SELECT password FROM users WHERE user_id = ${userid}
         `);
 
-        string? storedPassword = null;
-        check result.forEach(function(record {|string password;|} rec) {
-            storedPassword = rec.password;
-        });
+        if currentPasswordResult is sql:Error {
+            return error("User not found");
+        }
 
-        if storedPassword != password.current_password {
+        if currentPasswordResult.password != password.current_password {
             return error("Current password is incorrect");
         }
 
-        if password.current_password == password.new_password {
-            return error("New password cannot be the same as the current password");
-        }
-
-        // Update password in database
-        sql:ExecutionResult updateResult = check dbClient->execute(`
-            UPDATE users SET 
-                password = ${password.new_password} 
-            WHERE user_id = ${userid}
+        // Update to new password
+        sql:ExecutionResult result = check database:dbClient->execute(`
+            UPDATE users SET password = ${password.new_password} WHERE user_id = ${userid}
         `);
 
-        if updateResult.affectedRowCount > 0 {
+        if result.affectedRowCount > 0 {
             return {message: "Password updated successfully"};
         } else {
             return error("Failed to update password");
