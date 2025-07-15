@@ -11,7 +11,7 @@ Handles user authentication, JWT token management, and role-based access control
 ## 🔗 API Endpoints
 
 ### 🔑 Authentication Service
-**Base URL:** `http://localhost:9090/auth`
+**Base URL:** `http://localhost:9094/auth`
 
 | 🌐 Method | 🔗 Endpoint | 📝 Description | 👥 Access |
 |-----------|-------------|----------------|-----------|

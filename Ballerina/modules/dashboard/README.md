@@ -21,7 +21,7 @@ Provides comprehensive dashboards with real-time analytics, statistics, and data
 | `GET` | `/resourceallocation` | Get asset allocation statistics | Admin, SuperAdmin |
 
 ### 👤 User Dashboard Service
-**Base URL:** `http://localhost:9090/user`
+**Base URL:** `http://localhost:9092/user`
 
 | 🌐 Method | 🔗 Endpoint | 📝 Description | 👥 Access |
 |-----------|-------------|----------------|-----------|

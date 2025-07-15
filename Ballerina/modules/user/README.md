@@ -15,23 +15,22 @@ Manages user accounts, profiles, and settings with role-based access control and
 
 | 🌐 Method | 🔗 Endpoint | 📝 Description | 👥 Access |
 |-----------|-------------|----------------|-----------|
-| `GET` | `/details` | Get all users (admin view) | Admin, SuperAdmin |
-| `GET` | `/details/{id}` | Get specific user details | Admin, User (own), SuperAdmin |
+| `GET` | `/details` | Get all users (admin view) | Admin, User, SuperAdmin |
 | `POST` | `/add` | Create new user account | Admin, SuperAdmin |
-| `PUT` | `/details/{id}` | Update user information | Admin, User (own), SuperAdmin |
+| `PUT` | `/details/{userid}` | Update user information | Admin, SuperAdmin |
 | `DELETE` | `/details/{id}` | Delete user account | Admin, SuperAdmin |
 
 ### ⚙️ Account Settings Service
-**Base URL:** `http://localhost:9090/account`
+**Base URL:** `http://localhost:9090/settings`
 
 | 🌐 Method | 🔗 Endpoint | 📝 Description | 👥 Access |
 |-----------|-------------|----------------|-----------|
-| `GET` | `/profile` | Get user profile | Authenticated User |
-| `PUT` | `/profile` | Update user profile | Authenticated User |
-| `PUT` | `/password` | Change password | Authenticated User |
-| `PUT` | `/email` | Update email address | Authenticated User |
-| `PUT` | `/phone` | Update phone number | Authenticated User |
-| `POST` | `/upload-avatar` | Upload profile picture | Authenticated User |
+| `GET` | `/details/{userid}` | Get user profile details | Admin, User, SuperAdmin |
+| `PUT` | `/profile/{userid}` | Update user profile | Admin, User, SuperAdmin |
+| `PUT` | `/email/{userid}` | Update email address | Admin, User, SuperAdmin |
+| `PUT` | `/phone/{userid}` | Update phone number | Admin, User, SuperAdmin |
+| `PUT` | `/password/{userid}` | Change password | Admin, User, SuperAdmin |
+| `POST` | `/sendEmail` | Send verification email | Public |
 
 ---
 
@@ -39,9 +38,27 @@ Manages user accounts, profiles, and settings with role-based access control and
 
 - 🔄 **User CRUD Operations** - Complete user lifecycle management
 - ⚙️ **Account Settings** - Profile and preference management
-- 🖼️ **Avatar Upload** - Profile picture management
+- � **Email Management** - Email updates with verification codes
+- 📱 **Phone Management** - Phone number updates and verification
+- 🔐 **Password Management** - Secure password change with validation
 - 👥 **Role-Based Access** - Different access levels for user types
-- 🔍 **User Search** - Search and filter functionality
+- � **Automated Notifications** - Email notifications for account creation
+- 🆔 **User Profile Management** - Username, bio, and profile picture updates
+
+---
+
+## 📊 User Management Features
+
+### 🔐 Account Creation
+- **Automatic Password Generation** - 8-character random passwords
+- **Email Notifications** - Welcome emails with temporary credentials
+- **Default Profile Setup** - Standard profile picture and settings
+
+### ⚙️ Profile Management
+- **Profile Updates** - Username, bio, and profile picture
+- **Email Verification** - Verification codes for email changes
+- **Phone Updates** - Phone number management
+- **Password Security** - Current password validation for changes
 
 ---
 
