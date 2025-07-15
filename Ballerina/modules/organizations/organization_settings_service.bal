@@ -7,14 +7,6 @@ import ResourceHub.common;
 import ResourceHub.user;
 import ballerina/io;
 
-// Profile data structure for organization settings
-public type OrgProfile record {|
-    string org_name;
-    string org_logo;
-    string? org_address = ();
-    string? org_email = ();
-|};
-
 // CORS configuration for client access
 @http:ServiceConfig {
     cors: {

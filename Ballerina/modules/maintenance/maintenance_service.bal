@@ -6,18 +6,6 @@ import ballerina/io;
 import ballerina/jwt;
 import ballerina/sql;
 
-public type Maintenance record {|
-    int maintenance_id?;
-    int user_id;
-    string? name;
-    string description;
-    string priorityLevel;
-    string status?;
-    string submitted_date?;
-    string profilePicture?;
-    string username?;
-|};
-
 @http:ServiceConfig {
     cors: {
         allowOrigins: ["http://localhost:5173", "*"],

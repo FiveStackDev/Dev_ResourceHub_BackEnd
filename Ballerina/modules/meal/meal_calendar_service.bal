@@ -5,18 +5,6 @@ import ballerina/jwt;
 import ResourceHub.database;
 import ResourceHub.common;
 
-public type MealEvent record {| 
-    int requestedmeal_id?; 
-    int mealtime_id; 
-    int mealtype_id; 
-    string mealtype_name?; 
-    string mealtime_name?; 
-    string username?; 
-    int user_id; 
-    string submitted_date; 
-    string meal_request_date; 
-|};
-
 @http:ServiceConfig { 
     cors: { 
         allowOrigins: ["http://localhost:5173", "*"], 

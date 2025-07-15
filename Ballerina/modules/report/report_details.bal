@@ -8,12 +8,6 @@ import ResourceHub.maintenance;
 import ResourceHub.meal;
 import ballerina/io;
 
-public type ScheduleReport record{|
-    int user_id;
-    string report_name;
-    string frequency;
-|};
-
 @http:ServiceConfig {
     cors: {
         allowOrigins: ["http://localhost:5173", "*"],

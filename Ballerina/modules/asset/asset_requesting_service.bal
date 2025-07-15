@@ -5,22 +5,6 @@ import ballerina/jwt;
 import ResourceHub.database;
 import ResourceHub.common;
 
-public type AssetRequest record {|
-    int requestedasset_id?;
-    int user_id;
-    int asset_id;
-    string category?;
-    string submitted_date ;
-    string handover_date;
-    int remaining_days?;
-    int quantity;
-    string profile_picture_url?;
-    string username?;
-    string status?;
-    boolean is_returning?;
-    string asset_name?;
-|};
-
 @http:ServiceConfig {
     cors: {
         allowOrigins: ["http://localhost:5173", "*"],

@@ -5,44 +5,6 @@ import ballerina/jwt;
 import ResourceHub.database;
 import ResourceHub.common;
 
-type MealTime record {|
-    int mealtime_id;
-    string mealtime_name;
-    string? mealtime_image_url?;
-|};
-
-type MonthlyUserData record {|
-    int month;
-    int count;
-|};
-
-type MonthlyMealData record {|
-    int month;
-    int count;
-|};
-
-type MonthlyAssetRequestData record {|
-    int month;
-    int count;
-|};
-
-type MonthlyMaintenanceData record {|
-    int month;
-    int count;
-|};
-
-type MealDistributionData record {|
-    int day_of_week;
-    string mealtime_name;
-    int count;
-|};
-
-type ResourceAllocationData record {|
-    string category;
-    decimal allocated;
-    decimal total;
-|};
-
 // DashboardAdminService - RESTful service to provide data for admin dashboard
 @http:ServiceConfig {
     cors: {

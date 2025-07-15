@@ -6,10 +6,6 @@ import ballerina/sql;
 import ResourceHub.database;
 import ResourceHub.common;
 
-type ForgotPassword record {
-    string email;
-};
-
 // JWT configuration is now in jwt_utils.bal to avoid duplication
 
 @http:ServiceConfig {
@@ -22,10 +18,10 @@ type ForgotPassword record {
 service /auth on database:authListener {
 
     // Login resource - issues JWT token with role claim
-    resource function post login(@http:Payload record {string email; string password;} credentials) returns json|error {
+    resource function post login(@http:Payload Credentials credentials) returns json|error {
 
         sql:ParameterizedQuery query = `SELECT username, user_id, email, password, usertype, profile_picture_url FROM users WHERE email = ${credentials.email}`;
-        record {|string username; int user_id; string email; string password; string usertype; string profile_picture_url;|}|sql:Error result = database:dbClient->queryRow(query);
+        UserAuthData|sql:Error result = database:dbClient->queryRow(query);
 
         if (result is sql:Error) {
             if (result is sql:NoRowsError) {

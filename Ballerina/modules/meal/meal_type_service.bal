@@ -5,13 +5,6 @@ import ballerina/jwt;
 import ResourceHub.database;
 import ResourceHub.common;
 
-// Defines the structure of a MealType record
-public type MealType record {| 
-    int mealtype_id?;
-    string mealtype_name;
-    string mealtype_image_url;
-|};
-
 // CORS configuration for allowing specific cross-origin requests
 @http:ServiceConfig {
     cors: {

@@ -6,18 +6,6 @@ import ballerina/jwt;
 import ResourceHub.database;
 import ResourceHub.common;
 
-public type User record {| 
-    int user_id?; 
-    string username; 
-    string profile_picture_url?; 
-    string usertype; 
-    string email; 
-    string phone_number?; 
-    string password?; 
-    string bio; 
-    string created_at?; 
-|};
-
 @http:ServiceConfig { 
     cors: { 
         allowOrigins: ["http://localhost:5173", "*"], 
