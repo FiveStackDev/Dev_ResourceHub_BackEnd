@@ -31,6 +31,7 @@ A modular backend system for managing organizational resources including assets,
 - **User Management** - Role-based user accounts and authentication
 - **Meal Services** - Comprehensive meal planning and request system
 - **Maintenance** - Facility maintenance request and tracking system
+- **Notifications** - Real-time notification system for pending requests
 - **Organizations** - Multi-tenant organization management
 - **Dashboard Analytics** - Real-time system monitoring and reporting
 
@@ -59,23 +60,28 @@ graph TB
     B --> F[Meal Module]
     B --> G[Maintenance Module]
     B --> H[Dashboard Module]
-    B --> I[Report Module]
-    B --> J[Organization Module]
-    B --> K[Common Module]
+    B --> I[Notification Module]
+    B --> J[Report Module]
+    B --> K[Organization Module]
+    B --> L[Common Module]
     
-    C --> L[Database Module]
-    D --> L
-    E --> L
-    F --> L
-    G --> L
-    H --> L
-    I --> L
-    J --> L
-    K --> L
+    C --> M[Database Module]
+    D --> M
+    E --> M
+    F --> M
+    G --> M
+    H --> M
+    I --> M
+    J --> M
+    K --> M
+    L --> M
     
-    L --> M[MySQL Database]
-    I --> N[Report Service :9091]
-    L --> O[Main Services :9090]
+    M --> N[MySQL Database]
+    J --> O[Report Service :9091]
+    H --> P[Dashboard Service :9092]
+    I --> Q[Notification Service :9093]
+    C --> R[Auth Service :9094]
+    M --> S[Main Services :9090]
 ```
 
 ### 📦 **Modular Design**
@@ -135,6 +141,9 @@ bal run
 The services will be available at:
 - **Main Services:** `http://localhost:9090`
 - **Report Services:** `http://localhost:9091`
+- **Dashboard Services:** `http://localhost:9092`
+- **Notification Services:** `http://localhost:9093`
+- **Auth Services:** `http://localhost:9094`
 
 ---
 
@@ -144,7 +153,7 @@ The services will be available at:
 
 | Service | Base URL | Port | Description |
 |---------|----------|------|-------------|
-| 🔐 Authentication | `/auth` | 9090 | User login and token management |
+| 🔐 Authentication | `/auth` | 9094 | User login and token management |
 | 👥 User Management | `/user` | 9090 | User CRUD operations |
 | 🏢 Asset Management | `/asset` | 9090 | Asset inventory and tracking |
 | 📋 Asset Requests | `/assetrequest` | 9090 | Asset allocation requests |
@@ -152,8 +161,9 @@ The services will be available at:
 | ⏰ Meal Times | `/mealtime` | 9090 | Meal time slots |
 | 📅 Meal Calendar | `/calendar` | 9090 | Meal planning and requests |
 | 🔧 Maintenance | `/maintenance` | 9090 | Maintenance request system |
-| 📊 Admin Dashboard | `/admin` | 9090 | Administrative analytics |
-| 👤 User Dashboard | `/user` | 9090 | User-specific dashboard |
+| � Notifications | `/notification` | 9093 | Real-time notification system |
+| �📊 Admin Dashboard | `/admin` | 9092 | Administrative analytics |
+| 👤 User Dashboard | `/user` | 9092 | User-specific dashboard |
 | 🏢 Organizations | `/orgsettings` | 9090 | Organization management |
 | 📊 Reports | `/report` | 9091 | Report generation |
 | 📋 Report Data | `/schedulereports` | 9091 | Report data endpoints |
@@ -181,7 +191,8 @@ Authorization: Bearer <your-jwt-token>
 | [👥 User](modules/user/Module.md) | User management and profiles | Account management, settings |
 | [🍽️ Meal](modules/meal/Module.md) | Meal planning and services | Calendar, types, time slots |
 | [🔧 Maintenance](modules/maintenance/Module.md) | Maintenance request system | Priority levels, status tracking |
-| [📊 Dashboard](modules/dashboard/Module.md) | Analytics and monitoring | Real-time stats, visualizations |
+| [� Notification](modules/notification/Module.md) | Real-time notifications | Pending request alerts, system notifications |
+| [�📊 Dashboard](modules/dashboard/Module.md) | Analytics and monitoring | Real-time stats, visualizations |
 | [🏢 Organizations](modules/organizations/Module.md) | Organization settings | Multi-tenant management |
 | [📊 Report](modules/report/Module.md) | Report generation | Automated PDF reports |
 | [🗄️ Database](modules/database/Module.md) | Database connectivity | MySQL client, HTTP listeners |
@@ -251,6 +262,7 @@ ResourceHub-Backend/
 │   ├── 📁 user/             # User management
 │   ├── 📁 meal/             # Meal services
 │   ├── 📁 maintenance/      # Maintenance system
+│   ├── 📁 notification/     # Notification system
 │   ├── 📁 dashboard/        # Analytics dashboard
 │   ├── 📁 organizations/    # Organization management
 │   ├── 📁 report/           # Report generation
@@ -285,7 +297,7 @@ WORKDIR /app
 RUN bal build
 CMD ["bal", "run", "target/bin/ResourceHub.jar"]
 
-EXPOSE 9090 9091
+EXPOSE 9090 9091 9092 9093 9094
 ```
 
 ### ☁️ **Production Setup**
@@ -355,12 +367,20 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **FiveStackDev** - Development Team
 - GitHub: [@FiveStackDev](https://github.com/FiveStackDev)
 
+### Core Contributors
+
+- **Minul Chathumal** - [@Minulck](https://github.com/Minulck)
+- **Theekshana Udara** - [@th33k](https://github.com/th33k)
+- **Piumini Tishani** - [@PiuminiTishani](https://github.com/PiuminiTishani)
+- **Nethminiwelgama** - [@nethminiwelgama](https://github.com/nethminiwelgama)
+- **Sineth Nimhan** - [@SinethNimhan](https://github.com/SinethNimhan)
+
 ---
 
 ## 📞 Support
 
 For support and questions:
-- 📧 **Email**: support@fivestack.dev
+- 📧 **Email**: minulck@gmail.comZ
 - 📚 **Documentation**: [Project Wiki](https://github.com/FiveStackDev/Resource_Hub-Backend-/wiki)
 - 🐛 **Issues**: [GitHub Issues](https://github.com/FiveStackDev/Resource_Hub-Backend-/issues)
 
