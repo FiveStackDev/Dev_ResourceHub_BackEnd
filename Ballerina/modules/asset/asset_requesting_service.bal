@@ -141,7 +141,9 @@ service /assetrequest on database:ln {
         sql:ExecutionResult result = check database:dbClient->execute(`
             UPDATE requestedassets 
             SET status = ${assetrequest.status ?: "pending"}, 
-                is_returning = ${assetrequest.is_returning ?: false}
+            is_returning = ${assetrequest.is_returning ?: false},
+            quantity = ${assetrequest.quantity},
+            handover_date = ${assetrequest.handover_date}
             WHERE requestedasset_id = ${id}
         `);
 
