@@ -6,6 +6,7 @@ import ResourceHub.common;
 import ResourceHub.asset;
 import ResourceHub.maintenance;
 import ResourceHub.meal;
+import ballerina/io;
 
 public type ScheduleReport record{|
     int user_id;
@@ -246,4 +247,8 @@ service /schedulereports on database:report {
         });
         return maintenances;
     }
+}
+
+public function startReportDetailsService() returns error? {
+    io:println("Report details service started on port 9090");
 }

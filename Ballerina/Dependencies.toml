@@ -33,6 +33,7 @@ modules = [
 	{org = "FiveStack", packageName = "ResourceHub", moduleName = "ResourceHub.database"},
 	{org = "FiveStack", packageName = "ResourceHub", moduleName = "ResourceHub.maintenance"},
 	{org = "FiveStack", packageName = "ResourceHub", moduleName = "ResourceHub.meal"},
+	{org = "FiveStack", packageName = "ResourceHub", moduleName = "ResourceHub.notification"},
 	{org = "FiveStack", packageName = "ResourceHub", moduleName = "ResourceHub.organizations"},
 	{org = "FiveStack", packageName = "ResourceHub", moduleName = "ResourceHub.report"},
 	{org = "FiveStack", packageName = "ResourceHub", moduleName = "ResourceHub.user"}

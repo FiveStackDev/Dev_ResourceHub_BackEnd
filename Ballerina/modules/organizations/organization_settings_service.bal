@@ -5,6 +5,7 @@ import ballerina/sql;
 import ResourceHub.database;
 import ResourceHub.common;
 import ResourceHub.user;
+import ballerina/io;
 
 // Profile data structure for organization settings
 public type OrgProfile record {|
@@ -115,4 +116,8 @@ If you didn't request this, you can safely ignore this message.`
             message: "Code sent successfully. Check your email for the Verification Code."
         };
     }
+}
+
+public function startOrganizationSettingsService() returns error? {
+    io:println("Organization settings service started on port 9090");
 }

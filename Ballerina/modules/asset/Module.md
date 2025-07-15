@@ -32,6 +32,8 @@ The Asset module provides complete asset lifecycle management through two integr
 | `POST` | `/add` | Submit new asset request | Admin, User, SuperAdmin |
 | `PUT` | `/details/{id}` | Update request status | Admin, SuperAdmin |
 | `DELETE` | `/details/{id}` | Delete asset request | Admin, User, SuperAdmin |
+| `GET` | `/dueassets` | Get all overdue assets | Admin, User, SuperAdmin |
+| `GET` | `/dueassets/{userid}` | Get user-specific overdue assets | Admin, User, SuperAdmin |
 
 ---
 
@@ -40,6 +42,7 @@ The Asset module provides complete asset lifecycle management through two integr
 - 🔄 **Asset CRUD Operations** - Complete asset lifecycle management
 - 📋 **Request Management** - Handle user allocation requests  
 - 📊 **Inventory Tracking** - Monitor asset distribution and availability
+- ⏰ **Due Asset Monitoring** - Track overdue assets requiring return
 - 🔐 **Role-Based Access** - Secure permissions for different user types
 - ⏰ **Status & Deadline Tracking** - Real-time request and return monitoring
 

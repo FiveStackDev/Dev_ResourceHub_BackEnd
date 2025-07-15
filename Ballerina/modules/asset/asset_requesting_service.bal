@@ -150,8 +150,85 @@ service /assetrequest on database:ln {
         }
         return {message: "Asset request updated successfully"};
     }
+
+    resource function get dueassets(http:Request req) returns AssetRequest[]|error {
+        jwt:Payload payload = check common:getValidatedPayload(req);
+        if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
+            return error("Forbidden: You do not have permission to access due assets");
+        }
+        
+        stream<AssetRequest, sql:Error?> resultstream = database:dbClient->query
+        (`SELECT 
+        ra.requestedasset_id,
+        u.user_id,
+        u.profile_picture_url,
+        u.username,
+        a.asset_id,
+        a.asset_name,
+        a.category,
+        ra.submitted_date,
+        ra.handover_date,
+        DATEDIFF(ra.handover_date, CURDATE()) AS remaining_days,
+        ra.quantity,
+        ra.status,
+        ra.is_returning
+        FROM requestedassets ra
+        JOIN users u ON ra.user_id = u.user_id
+        JOIN assets a ON ra.asset_id = a.asset_id
+        WHERE DATEDIFF(ra.handover_date, CURDATE()) < 0
+        AND ra.is_returning = true
+        AND ra.status = 'Accepted'
+        ORDER BY remaining_days ASC;`);
+
+        AssetRequest[] assetrequests = [];
+
+        check resultstream.forEach(function(AssetRequest assetrequest) {
+            assetrequests.push(assetrequest);
+        });
+
+        return assetrequests;
+    }
+
+    resource function get dueassets/[int userid](http:Request req) returns AssetRequest[]|error {
+        jwt:Payload payload = check common:getValidatedPayload(req);
+        if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
+            return error("Forbidden: You do not have permission to access due assets");
+        }
+        
+        stream<AssetRequest, sql:Error?> resultstream = database:dbClient->query
+        (`SELECT 
+        ra.requestedasset_id,
+        u.user_id,
+        u.profile_picture_url,
+        u.username,
+        a.asset_id,
+        a.asset_name,
+        a.category,
+        ra.submitted_date,
+        ra.handover_date,
+        DATEDIFF(ra.handover_date, CURDATE()) AS remaining_days,
+        ra.quantity,
+        ra.status,
+        ra.is_returning
+        FROM requestedassets ra
+        JOIN users u ON ra.user_id = u.user_id
+        JOIN assets a ON ra.asset_id = a.asset_id
+        WHERE DATEDIFF(ra.handover_date, CURDATE()) < 0 
+        AND ra.user_id = ${userid}
+        AND ra.is_returning = true
+        AND ra.status = 'Accepted'
+        ORDER BY remaining_days ASC;`);
+
+        AssetRequest[] assetrequests = [];
+
+        check resultstream.forEach(function(AssetRequest assetrequest) {
+            assetrequests.push(assetrequest);
+        });
+
+        return assetrequests;
+    }
 }
 
-public function AssetRequestService() {
-    io:println("Asset request service work on port :9090");
+public function startAssetRequestService() returns error? {
+    io:println("Asset request service started on port 9090");
 }

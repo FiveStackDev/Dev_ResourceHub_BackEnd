@@ -4,6 +4,7 @@ import ballerina/jwt;
 import ballerina/sql;
 import ResourceHub.database;
 import ResourceHub.common;
+import ballerina/io;
 
 // Profile data structure for user settings
 public type Profile record {|
@@ -186,4 +187,8 @@ Thanks for choosing ResourceHub. We're excited to have you on board!`
             return error("Failed to update password");
         }
     }
+}
+
+public function startAccountSettingsService() returns error? {
+    io:println("Account settings service started on port 9090");
 }

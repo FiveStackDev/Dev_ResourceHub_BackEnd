@@ -151,3 +151,7 @@ function generateAndSendReport(string endpoint, string reportTitle, string fileN
     // Optionally, log or return a message
     return;
 }
+
+public function startReportService() returns error? {
+    io:println("Report service started on port 9090");
+}
