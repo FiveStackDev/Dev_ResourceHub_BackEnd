@@ -28,7 +28,7 @@ public type AssetRequest record {|
         allowHeaders: ["Content-Type", "Authorization"]
     }
 }
-service /assetrequest on database:ln {
+service /assetrequest on database:mainListener {
 
     resource function get details(http:Request req) returns AssetRequest[]|error {
         // Validate JWT and check for allowed roles (admin, manager, user)

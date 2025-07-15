@@ -23,7 +23,7 @@ public type OrgProfile record {|
         allowHeaders: ["Content-Type", "Authorization"]
     }
 }
-service /orgsettings on database:ln {
+service /orgsettings on database:mainListener {
 
     // Fetch organization profile details by organization ID - accessible by admin or authorized users
     resource function get details/[int orgid](http:Request req) returns OrgProfile[]|error {

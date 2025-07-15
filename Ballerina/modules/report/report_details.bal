@@ -22,7 +22,7 @@ public type ScheduleReport record{|
     }
 }
 
-service /schedulereports on database:ln{
+service /schedulereports on database:mainListener{
     resource function post addscedulereport(http:Request req,@http:Payload ScheduleReport schedulereport) returns json | error{
         jwt:Payload payload = check common:getValidatedPayload(req);
         if (!common:hasAnyRole(payload, ["Admin"])) {
@@ -46,7 +46,7 @@ service /schedulereports on database:ln{
         allowHeaders: ["Content-Type"]
     }
 }
-service /schedulereports on database:report {
+service /schedulereports on database:reportListener {
     resource function get weeklyassetrequestdetails() returns asset:AssetRequest[]|error {
         stream<asset:AssetRequest, sql:Error?> resultstream = database:dbClient->query
         (`SELECT 

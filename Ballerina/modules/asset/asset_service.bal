@@ -23,7 +23,7 @@ public type Asset record {|
     }
 }
 
-service /asset on database:ln{
+service /asset on database:mainListener{
     // Only admin, manager, and User can view asset details
     resource function get details(http:Request req) returns Asset[]|error{
         jwt:Payload payload = check common:getValidatedPayload(req);

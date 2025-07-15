@@ -22,7 +22,7 @@ public type MealType record {|
 }
 
 // Service handling CRUD operations for meal types
-service /mealtype on database:ln{
+service /mealtype on database:mainListener{
     // Only admin, manager, and User can view meal types
     resource function get details(http:Request req) returns MealType[]|error {
         jwt:Payload payload = check common:getValidatedPayload(req);

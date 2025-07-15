@@ -26,7 +26,7 @@ public type Maintenance record {|
     }
 }
 
-service /maintenance on database:ln {
+service /maintenance on database:mainListener {
     // Only admin, manager, and User can view maintenance details
     resource function get details(http:Request req) returns Maintenance[]|error {
         jwt:Payload payload = check common:getValidatedPayload(req);

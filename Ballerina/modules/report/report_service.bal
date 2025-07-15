@@ -8,7 +8,7 @@ import ResourceHub.common;
 
 configurable string PDFSHIFT_API_KEY = ?;
 
-service /report on database:report {
+service /report on database:reportListener {
     // Meal Reports
     resource function get generateWeeklyMeal() returns error? {
         check generateAndSendReport("/schedulereports/weeklymealdetails", "Weekly Meal Events Report", "Weekly_Meal_Events_Report.pdf", "meal", "weekly");

@@ -41,7 +41,7 @@ public type Password record {|
         allowHeaders: ["Content-Type", "Authorization"]
     }
 }
-service /settings on database:ln {
+service /settings on database:mainListener {
 
     // Fetch user profile details by user ID - accessible by user themselves or admin
     resource function get details/[int userid](http:Request req) returns Profile[]|error {

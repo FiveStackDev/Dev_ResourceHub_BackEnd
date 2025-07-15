@@ -26,7 +26,7 @@ public type User record {|
     } 
 }
 
-service /user on database:ln { 
+service /user on database:mainListener { 
     // Only admin, manager, and User can view user details
     resource function get details(http:Request req) returns User[]|error { 
         jwt:Payload payload = check common:getValidatedPayload(req);

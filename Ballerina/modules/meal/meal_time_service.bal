@@ -22,7 +22,7 @@ public type MealTime record {|
 }
 
 // MealTime service with CRUD operations
-service /mealtime on database:ln{
+service /mealtime on database:mainListener{
     // Only admin, manager, and User can view mealtime details
     resource function get details(http:Request req) returns MealTime[]|error {
         jwt:Payload payload = check common:getValidatedPayload(req);

@@ -24,7 +24,7 @@ public type MealEvent record {|
         allowHeaders: ["Content-Type", "Authorization"] 
     } 
 } 
-service /calendar on database:ln { 
+service /calendar on database:mainListener { 
     // Only admin, manager, and User can view all meal events
     resource function get mealevents(http:Request req) returns MealEvent[]|error {
         jwt:Payload payload = check common:getValidatedPayload(req);

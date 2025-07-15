@@ -26,7 +26,7 @@ public type Notification record {|
     }
 }
 
-service /notification on database:ln {
+service /notification on database:notificationListener {
     // Only admin, manager, and User can view notifications
     resource function get details(http:Request req) returns Notification[]|error {
         jwt:Payload payload = check common:getValidatedPayload(req);
@@ -72,5 +72,5 @@ service /notification on database:ln {
 }
 
 public function startNotificationService() returns error? {
-    io:println("Notification service started on port: 9090");
+    io:println("Notification service started on port: 9093");
 }

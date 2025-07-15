@@ -19,7 +19,7 @@ type ForgotPassword record {
         allowHeaders: ["Content-Type", "Authorization"]
     }
 }
-service /auth on database:ln {
+service /auth on database:authListener {
 
     // Login resource - issues JWT token with role claim
     resource function post login(@http:Payload record {string email; string password;} credentials) returns json|error {
@@ -165,5 +165,5 @@ Support Team`
 }
 
 public function startAuthService() returns error? {
-    io:println("Auth service started on port 9090");
+    io:println("Auth service started on port 9094");
 }
