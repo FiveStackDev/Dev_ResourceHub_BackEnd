@@ -22,8 +22,11 @@ service /mealtime on database:mainListener{
         if (!common:hasAnyRole(payload, ["Admin","User","SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         stream<MealTime, sql:Error?> resultStream = 
-            database:dbClient->query(`SELECT mealtime_id,mealtime_name , mealtime_image_url FROM mealtimes`);
+            database:dbClient->query(`SELECT mealtime_id, mealtime_name, mealtime_image_url, org_id FROM mealtimes WHERE org_id = ${orgId}`);
         MealTime[] mealtimes = [];
         check resultStream.forEach(function(MealTime meal) {
             mealtimes.push(meal);
@@ -37,10 +40,13 @@ service /mealtime on database:mainListener{
         if (!common:hasAnyRole(payload, ["Admin","SuperAdmin"])) {
             return error("Forbidden: You do not have permission to add mealtime records");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         io:println("Received meal time data: " + mealTime.toJsonString());
         sql:ExecutionResult result = check database:dbClient->execute(`
-            INSERT INTO mealtimes (mealtime_name, mealtime_image_url)
-            VALUES (${mealTime.mealtime_name}, ${mealTime.mealtime_image_url})
+            INSERT INTO mealtimes (mealtime_name, mealtime_image_url, org_id)
+            VALUES (${mealTime.mealtime_name}, ${mealTime.mealtime_image_url}, ${orgId})
         `);
         int|string? lastInsertId = result.lastInsertId;
         if lastInsertId is int {
@@ -61,13 +67,16 @@ service /mealtime on database:mainListener{
         if (!common:hasAnyRole(payload, ["Admin","SuperAdmin"])) {
             return error("Forbidden: You do not have permission to update mealtime records");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         sql:ExecutionResult result = check database:dbClient->execute(`
             UPDATE mealtimes SET mealtime_name = ${mealTime.mealtime_name}, mealtime_image_url = ${mealTime.mealtime_image_url}
-            WHERE mealtime_id = ${id}
+            WHERE mealtime_id = ${id} AND org_id = ${orgId}
         `);
         if result.affectedRowCount == 0 {
             return {
-                message: "Meal time not found"
+                message: "Meal time not found or you don't have permission to update it"
             };
         }
         return {
@@ -82,12 +91,15 @@ service /mealtime on database:mainListener{
         if (!common:hasAnyRole(payload, ["Admin","SuperAdmin"])) {
             return error("Forbidden: You do not have permission to delete mealtime records");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         sql:ExecutionResult result = check database:dbClient->execute(`
-            DELETE FROM mealtimes WHERE mealtime_id = ${id}
+            DELETE FROM mealtimes WHERE mealtime_id = ${id} AND org_id = ${orgId}
         `);
         if result.affectedRowCount == 0 {
             return {
-                message: "Meal time not found"
+                message: "Meal time not found or you don't have permission to delete it"
             };
         }
         return {

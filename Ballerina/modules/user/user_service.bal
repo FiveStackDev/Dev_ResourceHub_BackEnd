@@ -21,8 +21,11 @@ service /user on database:mainListener {
         if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin", "User"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         stream<User, sql:Error?> resultStream = 
-            database:dbClient->query(`SELECT * FROM users`); 
+            database:dbClient->query(`SELECT * FROM users WHERE org_id = ${orgId}`); 
         User[] users = []; 
         check resultStream.forEach(function(User user) { 
             users.push(user); 
@@ -36,6 +39,24 @@ service /user on database:mainListener {
         if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to add users");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
+        // Check if email already exists in the organization
+        stream<record {| int count; |}, sql:Error?> emailCheckStream = 
+            database:dbClient->query(`SELECT COUNT(*) as count FROM users WHERE email = ${user.email}`);
+        
+        record {| int count; |}[] emailCheckResult = [];
+        check emailCheckStream.forEach(function(record {| int count; |} result) {
+            emailCheckResult.push(result);
+        });
+        
+        if (emailCheckResult.length() > 0 && emailCheckResult[0].count > 0) {
+            return {
+                message: "Email already exists in a organization. Please use a different email address."
+            };
+        }
+        
         // Generate a random password of length 8 
         string randomPassword = check common:generateSimplePassword(8); 
         
@@ -48,8 +69,8 @@ service /user on database:mainListener {
         
         sql:ExecutionResult result = check database:dbClient->execute(` 
             insert into 
-            users (username,usertype,email,profile_picture_url,phone_number,password,bio,created_at) 
-            values (${user.email},${user.usertype},${user.email},'https://img.freepik.com/free-vector/smiling-young-man-illustration_1308-174669.jpg?t=st=1746539771~exp=1746543371~hmac=66ec0b65bf0ae4d49922a69369cec4c0e3b3424613be723e0ca096a97d1039f1&w=740',NULL,${hashedPassword},${user.bio},NOW()) 
+            users (username,usertype,email,profile_picture_url,phone_number,password,bio,created_at,org_id) 
+            values (${user.email},${user.usertype},${user.email},'https://img.freepik.com/free-vector/smiling-young-man-illustration_1308-174669.jpg?t=st=1746539771~exp=1746543371~hmac=66ec0b65bf0ae4d49922a69369cec4c0e3b3424613be723e0ca096a97d1039f1&w=740',NULL,${hashedPassword},${user.bio},NOW(),${orgId}) 
         `); 
         if result.affectedRowCount != 0 { 
             email:Message emailMsg = { 
@@ -103,12 +124,15 @@ The ResourceHub Team`
         if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to delete users");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         sql:ExecutionResult result = check database:dbClient->execute(` 
-            DELETE FROM users WHERE user_id = ${id} 
+            DELETE FROM users WHERE user_id = ${id} AND org_id = ${orgId}
         `); 
         if result.affectedRowCount == 0 { 
             return { 
-                message: "User not found" 
+                message: "User not found or you don't have permission to delete them"
             }; 
         } 
         return { 
@@ -122,12 +146,30 @@ The ResourceHub Team`
         if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to update users");
         }
+        
+               int orgId = check common:getOrgId(payload);
+        
+        // Check if email already exists in the organization
+        stream<record {| int count; |}, sql:Error?> emailCheckStream = 
+            database:dbClient->query(`SELECT COUNT(*) as count FROM users WHERE email = ${user.email}`);
+        
+        record {| int count; |}[] emailCheckResult = [];
+        check emailCheckStream.forEach(function(record {| int count; |} result) {
+            emailCheckResult.push(result);
+        });
+        
+        if (emailCheckResult.length() > 0 && emailCheckResult[0].count > 0) {
+            return {
+                message: "Email already exists in a organization. Please use a different email address."
+            };
+        }
+        
         sql:ExecutionResult result = check database:dbClient->execute(` 
-            UPDATE users set usertype = ${user.usertype},bio = ${user.bio} WHERE user_id = ${userid} 
+            UPDATE users set usertype = ${user.usertype},bio = ${user.bio} WHERE user_id = ${userid} AND org_id = ${orgId}
         `); 
         if result.affectedRowCount == 0 { 
             return { 
-                message: "User not found" 
+                message: "User not found or you don't have permission to update them"
             }; 
         } 
         return { 

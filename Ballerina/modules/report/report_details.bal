@@ -22,9 +22,12 @@ service /schedulereports on database:mainListener{
         if (!common:hasAnyRole(payload, ["Admin"])) {
             return error("Forbidden: You do not have permission to add schedule reports");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         sql:ExecutionResult result = check database:dbClient->execute(`
-            insert into schedulereports (user_id,report_name,frequency)
-            values(${schedulereport.user_id},${schedulereport.report_name},${schedulereport.frequency})
+            insert into schedulereports (user_id,report_name,frequency,org_id)
+            values(${schedulereport.user_id},${schedulereport.report_name},${schedulereport.frequency},${orgId})
         `);
         if result.affectedRowCount == 0 { 
             return {message: "Failed to add schedule event"}; 
@@ -41,7 +44,7 @@ service /schedulereports on database:mainListener{
     }
 }
 service /schedulereports on database:reportListener {
-    resource function get weeklyassetrequestdetails() returns asset:AssetRequest[]|error {
+    resource function get weeklyassetrequestdetails/[int orgId]() returns asset:AssetRequest[]|error {
         stream<asset:AssetRequest, sql:Error?> resultstream = database:dbClient->query
         (`SELECT 
         ra.requestedasset_id,
@@ -59,7 +62,8 @@ service /schedulereports on database:reportListener {
         FROM requestedassets ra
         JOIN users u ON ra.user_id = u.user_id
         JOIN assets a ON ra.asset_id = a.asset_id
-        WHERE ra.submitted_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND CURDATE();`);
+        WHERE ra.submitted_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND CURDATE()
+        AND ra.org_id = ${orgId};`);
 
         asset:AssetRequest[] assetrequests = [];
 
@@ -70,7 +74,7 @@ service /schedulereports on database:reportListener {
         return assetrequests;
     }
 
-    resource function get biweeklyassetrequestdetails() returns asset:AssetRequest[]|error {
+    resource function get biweeklyassetrequestdetails/[int orgId]() returns asset:AssetRequest[]|error {
         stream<asset:AssetRequest, sql:Error?> resultstream = database:dbClient->query
         (`SELECT 
         ra.requestedasset_id,
@@ -88,7 +92,8 @@ service /schedulereports on database:reportListener {
         FROM requestedassets ra
         JOIN users u ON ra.user_id = u.user_id
         JOIN assets a ON ra.asset_id = a.asset_id
-        WHERE ra.submitted_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 14 DAY) AND CURDATE();`);
+        WHERE ra.submitted_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 14 DAY) AND CURDATE()
+        AND ra.org_id = ${orgId};`);
 
         asset:AssetRequest[] assetrequests = [];
 
@@ -99,7 +104,7 @@ service /schedulereports on database:reportListener {
         return assetrequests;
     }
 
-    resource function get monthlyassetrequestdetails() returns asset:AssetRequest[]|error {
+    resource function get monthlyassetrequestdetails/[int orgId]() returns asset:AssetRequest[]|error {
         stream<asset:AssetRequest, sql:Error?> resultstream = database:dbClient->query
         (`SELECT 
         ra.requestedasset_id,
@@ -117,7 +122,8 @@ service /schedulereports on database:reportListener {
         FROM requestedassets ra
         JOIN users u ON ra.user_id = u.user_id
         JOIN assets a ON ra.asset_id = a.asset_id
-        WHERE ra.submitted_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND CURDATE();`);
+        WHERE ra.submitted_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND CURDATE()
+        AND ra.org_id = ${orgId};`);
 
         asset:AssetRequest[] assetrequests = [];
 
@@ -128,14 +134,15 @@ service /schedulereports on database:reportListener {
         return assetrequests;
     }
 
-    resource function get weeklymealdetails() returns meal:MealEvent[]|error {
+    resource function get weeklymealdetails/[int orgId]() returns meal:MealEvent[]|error {
         stream<meal:MealEvent, sql:Error?> resultStream = 
             database:dbClient->query(`SELECT requestedmeals.requestedmeal_id, mealtime_id,mealtimes.mealtime_name , mealtype_id,mealtypes.mealtype_name , username,users.user_id, submitted_date, meal_request_date 
             FROM requestedmeals
             JOIN users ON requestedmeals.user_id = users.user_id 
             join mealtypes ON requestedmeals.meal_type_id = mealtypes.mealtype_id
             join mealtimes ON requestedmeals.meal_time_id = mealtimes.mealtime_id
-            WHERE requestedmeals.submitted_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND CURDATE();`); 
+            WHERE requestedmeals.submitted_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND CURDATE()
+            AND requestedmeals.org_id = ${orgId};`); 
         meal:MealEvent[] events = []; 
         check resultStream.forEach(function(meal:MealEvent event) { 
             events.push(event); 
@@ -143,14 +150,15 @@ service /schedulereports on database:reportListener {
         return events; 
     } 
 
-    resource function get biweeklymealdetails() returns meal:MealEvent[]|error {
+    resource function get biweeklymealdetails/[int orgId]() returns meal:MealEvent[]|error {
         stream<meal:MealEvent, sql:Error?> resultStream = 
             database:dbClient->query(`SELECT requestedmeals.requestedmeal_id, mealtime_id,mealtimes.mealtime_name , mealtype_id,mealtypes.mealtype_name , username,users.user_id, submitted_date, meal_request_date 
             FROM requestedmeals
             JOIN users ON requestedmeals.user_id = users.user_id 
             join mealtypes ON requestedmeals.meal_type_id = mealtypes.mealtype_id
             join mealtimes ON requestedmeals.meal_time_id = mealtimes.mealtime_id
-            WHERE requestedmeals.submitted_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 14 DAY) AND CURDATE();`); 
+            WHERE requestedmeals.submitted_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 14 DAY) AND CURDATE()
+            AND requestedmeals.org_id = ${orgId};`); 
         meal:MealEvent[] events = []; 
         check resultStream.forEach(function(meal:MealEvent event) { 
             events.push(event); 
@@ -158,14 +166,15 @@ service /schedulereports on database:reportListener {
         return events; 
     } 
 
-    resource function get monthlymealdetails() returns meal:MealEvent[]|error {
+    resource function get monthlymealdetails/[int orgId]() returns meal:MealEvent[]|error {
         stream<meal:MealEvent, sql:Error?> resultStream = 
             database:dbClient->query(`SELECT requestedmeals.requestedmeal_id, mealtime_id,mealtimes.mealtime_name , mealtype_id,mealtypes.mealtype_name , username,users.user_id, submitted_date, meal_request_date 
             FROM requestedmeals
             JOIN users ON requestedmeals.user_id = users.user_id 
             join mealtypes ON requestedmeals.meal_type_id = mealtypes.mealtype_id
             join mealtimes ON requestedmeals.meal_time_id = mealtimes.mealtime_id
-            WHERE requestedmeals.submitted_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND CURDATE();`); 
+            WHERE requestedmeals.submitted_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND CURDATE()
+            AND requestedmeals.org_id = ${orgId};`); 
         meal:MealEvent[] events = []; 
         check resultStream.forEach(function(meal:MealEvent event) { 
             events.push(event); 
@@ -173,7 +182,7 @@ service /schedulereports on database:reportListener {
         return events; 
     } 
 
-    resource function get weeklymaintenancedetails() returns maintenance:Maintenance[]|error {
+    resource function get weeklymaintenancedetails/[int orgId]() returns maintenance:Maintenance[]|error {
         stream<maintenance:Maintenance, sql:Error?> resultStream =
             database:dbClient->query(`SELECT 
                 m.maintenance_id,
@@ -187,7 +196,8 @@ service /schedulereports on database:reportListener {
                 u.username
             FROM maintenance m
             JOIN users u ON m.user_id = u.user_id
-            WHERE m.submitted_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND CURDATE();
+            WHERE m.submitted_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND CURDATE()
+            AND m.org_id = ${orgId};
         `);
         maintenance:Maintenance[] maintenances = [];
         check resultStream.forEach(function(maintenance:Maintenance maintenance) {
@@ -196,7 +206,7 @@ service /schedulereports on database:reportListener {
         return maintenances;
     }
     
-    resource function get biweeklymaintenancedetails() returns maintenance:Maintenance[]|error {
+    resource function get biweeklymaintenancedetails/[int orgId]() returns maintenance:Maintenance[]|error {
         stream<maintenance:Maintenance, sql:Error?> resultStream =
             database:dbClient->query(`SELECT 
                 m.maintenance_id,
@@ -210,7 +220,8 @@ service /schedulereports on database:reportListener {
                 u.username
             FROM maintenance m
             JOIN users u ON m.user_id = u.user_id
-            WHERE m.submitted_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 14 DAY) AND CURDATE();
+            WHERE m.submitted_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 14 DAY) AND CURDATE()
+            AND m.org_id = ${orgId};
         `);
         maintenance:Maintenance[] maintenances = [];
         check resultStream.forEach(function(maintenance:Maintenance maintenance) {
@@ -219,7 +230,7 @@ service /schedulereports on database:reportListener {
         return maintenances;
     }
     
-    resource function get monthlymaintenancedetails() returns maintenance:Maintenance[]|error {
+    resource function get monthlymaintenancedetails/[int orgId]() returns maintenance:Maintenance[]|error {
         stream<maintenance:Maintenance, sql:Error?> resultStream =
             database:dbClient->query(`SELECT 
                 m.maintenance_id,
@@ -233,7 +244,8 @@ service /schedulereports on database:reportListener {
                 u.username
             FROM maintenance m
             JOIN users u ON m.user_id = u.user_id
-            WHERE m.submitted_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND CURDATE();
+            WHERE m.submitted_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND CURDATE()
+            AND m.org_id = ${orgId};
         `);
         maintenance:Maintenance[] maintenances = [];
         check resultStream.forEach(function(maintenance:Maintenance maintenance) {

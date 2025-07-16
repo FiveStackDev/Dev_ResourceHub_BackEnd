@@ -19,12 +19,16 @@ service /calendar on database:mainListener {
         if (!common:hasAnyRole(payload, ["Admin","User","SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         stream<MealEvent, sql:Error?> resultStream = 
-            database:dbClient->query(`SELECT requestedmeals.requestedmeal_id, mealtime_id,mealtimes.mealtime_name , mealtype_id,mealtypes.mealtype_name , username,users.user_id, submitted_date, meal_request_date 
+            database:dbClient->query(`SELECT requestedmeals.requestedmeal_id, requestedmeals.meal_time_id as mealtime_id, mealtimes.mealtime_name, requestedmeals.meal_type_id as mealtype_id, mealtypes.mealtype_name, users.username, users.user_id, requestedmeals.submitted_date, requestedmeals.meal_request_date, requestedmeals.org_id
             FROM requestedmeals
             JOIN users ON requestedmeals.user_id = users.user_id 
-            join mealtypes ON requestedmeals.meal_type_id = mealtypes.mealtype_id
-            join mealtimes ON requestedmeals.meal_time_id = mealtimes.mealtime_id`); 
+            JOIN mealtypes ON requestedmeals.meal_type_id = mealtypes.mealtype_id
+            JOIN mealtimes ON requestedmeals.meal_time_id = mealtimes.mealtime_id
+            WHERE requestedmeals.org_id = ${orgId}`); 
         MealEvent[] events = []; 
         check resultStream.forEach(function(MealEvent event) { 
             events.push(event); 
@@ -38,13 +42,16 @@ service /calendar on database:mainListener {
         if (!common:hasAnyRole(payload, ["Admin","User","SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         stream<MealEvent, sql:Error?> resultStream = 
-            database:dbClient->query(`SELECT requestedmeals.requestedmeal_id, mealtime_id,mealtimes.mealtime_name , mealtype_id,mealtypes.mealtype_name , username,users.user_id, submitted_date, meal_request_date 
+            database:dbClient->query(`SELECT requestedmeals.requestedmeal_id, requestedmeals.meal_time_id as mealtime_id, mealtimes.mealtime_name, requestedmeals.meal_type_id as mealtype_id, mealtypes.mealtype_name, users.username, users.user_id, requestedmeals.submitted_date, requestedmeals.meal_request_date, requestedmeals.org_id
             FROM requestedmeals
             JOIN users ON requestedmeals.user_id = users.user_id 
-            join mealtypes ON requestedmeals.meal_type_id = mealtypes.mealtype_id
-            join mealtimes ON requestedmeals.meal_time_id = mealtimes.mealtime_id
-            WHERE requestedmeals.user_id = ${userid}`); 
+            JOIN mealtypes ON requestedmeals.meal_type_id = mealtypes.mealtype_id
+            JOIN mealtimes ON requestedmeals.meal_time_id = mealtimes.mealtime_id
+            WHERE requestedmeals.user_id = ${userid} AND requestedmeals.org_id = ${orgId}`); 
         MealEvent[] events = []; 
         check resultStream.forEach(function(MealEvent event) { 
             events.push(event); 
@@ -58,9 +65,12 @@ service /calendar on database:mainListener {
         if (!common:hasAnyRole(payload, ["Admin","User","SuperAdmin"])) {
             return error("Forbidden: You do not have permission to add meal events");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         sql:ExecutionResult result = check database:dbClient->execute(` 
-            INSERT INTO requestedmeals (meal_time_id, meal_type_id, user_id, submitted_date, meal_request_date)
-            VALUES (${event.mealtime_id}, ${event.mealtype_id}, ${event.user_id}, ${event.submitted_date}, ${event.meal_request_date}) 
+            INSERT INTO requestedmeals (meal_time_id, meal_type_id, user_id, submitted_date, meal_request_date, org_id)
+            VALUES (${event.mealtime_id}, ${event.mealtype_id}, ${event.user_id}, ${event.submitted_date}, ${event.meal_request_date}, ${orgId}) 
         `); 
         if result.affectedRowCount == 0 {
             return {message: "Failed to add meal event"};
@@ -74,11 +84,14 @@ service /calendar on database:mainListener {
         if (!common:hasAnyRole(payload, ["Admin","User","SuperAdmin"])) {
             return error("Forbidden: You do not have permission to delete meal events");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         sql:ExecutionResult result = check database:dbClient->execute(` 
-            DELETE FROM requestedmeals WHERE requestedmeal_id = ${id} 
+            DELETE FROM requestedmeals WHERE requestedmeal_id = ${id} AND org_id = ${orgId}
         `); 
         if result.affectedRowCount == 0 {
-            return {message: "Meal event not found"};
+            return {message: "Meal event not found or you don't have permission to delete it"};
         }
         return {message: "Meal event deleted successfully"}; 
     } 

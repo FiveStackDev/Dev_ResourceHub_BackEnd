@@ -22,6 +22,8 @@ service /notification on database:notificationListener {
             return error("Forbidden: You do not have permission to access notifications");
         }
 
+        int orgId = check common:getOrgId(payload);
+
         stream<Notification, sql:Error?> resultStream =
             database:dbClient->query(`SELECT 
                 m.maintenance_id,
@@ -36,6 +38,7 @@ service /notification on database:notificationListener {
             FROM maintenance m
             JOIN users u ON m.user_id = u.user_id
             WHERE m.status = 'pending'
+            AND m.org_id = ${orgId}
             ORDER BY m.submitted_date DESC
         `);
 

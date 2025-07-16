@@ -14,6 +14,8 @@ public type UserAuthData record {|
     string password;
     string usertype;
     string profile_picture_url;
+    int org_id;
+    string? org_logo;
 |};
 
 // Forgot password request record

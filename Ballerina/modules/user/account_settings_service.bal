@@ -25,9 +25,11 @@ service /settings on database:mainListener {
             return error("Forbidden: You do not have permission to access this resource");
         }
 
+        int orgId = check common:getOrgId(payload);
+
         stream<Profile, sql:Error?> resultStream = database:dbClient->query(`
             SELECT username, profile_picture_url, bio, usertype, email, phone_number 
-            FROM users WHERE user_id = ${userid}
+            FROM users WHERE user_id = ${userid} AND org_id = ${orgId}
         `);
 
         Profile[] profiles = [];
@@ -47,11 +49,13 @@ service /settings on database:mainListener {
             return error("Forbidden: You do not have permission to update profiles");
         }
 
+        int orgId = check common:getOrgId(payload);
+
         sql:ExecutionResult result = check database:dbClient->execute(`
             UPDATE users SET username = ${profile.username}, 
                            profile_picture_url = ${profile.profile_picture_url}, 
                            bio = ${profile.bio ?: ""}
-            WHERE user_id = ${userid}
+            WHERE user_id = ${userid} AND org_id = ${orgId}
         `);
 
         if result.affectedRowCount > 0 {
@@ -70,8 +74,25 @@ service /settings on database:mainListener {
             return error("Forbidden: You do not have permission to update email");
         }
 
+               int orgId = check common:getOrgId(payload);
+        
+        // Check if email already exists in the organization
+        stream<record {| int count; |}, sql:Error?> emailCheckStream = 
+            database:dbClient->query(`SELECT COUNT(*) as count FROM users WHERE email = ${email.email}`);
+        
+        record {| int count; |}[] emailCheckResult = [];
+        check emailCheckStream.forEach(function(record {| int count; |} result) {
+            emailCheckResult.push(result);
+        });
+        
+        if (emailCheckResult.length() > 0 && emailCheckResult[0].count > 0) {
+            return {
+                message: "Email already exists in a organization. Please use a different email address."
+            };
+        }
+
         sql:ExecutionResult result = check database:dbClient->execute(`
-            UPDATE users SET email = ${email.email} WHERE user_id = ${userid}
+            UPDATE users SET email = ${email.email} WHERE user_id = ${userid} AND org_id = ${orgId}
         `);
 
         if result.affectedRowCount > 0 {
@@ -116,8 +137,10 @@ Thanks for choosing ResourceHub. We're excited to have you on board!`
             return error("Forbidden: You do not have permission to update phone");
         }
 
+        int orgId = check common:getOrgId(payload);
+
         sql:ExecutionResult result = check database:dbClient->execute(`
-            UPDATE users SET phone_number = ${phone.phone_number} WHERE user_id = ${userid}
+            UPDATE users SET phone_number = ${phone.phone_number} WHERE user_id = ${userid} AND org_id = ${orgId}
         `);
 
         if result.affectedRowCount > 0 {
@@ -136,9 +159,11 @@ Thanks for choosing ResourceHub. We're excited to have you on board!`
             return error("Forbidden: You do not have permission to update password");
         }
 
+        int orgId = check common:getOrgId(payload);
+
         // Verify current password using BCrypt
         record {|string password;|}|sql:Error currentPasswordResult = database:dbClient->queryRow(`
-            SELECT password FROM users WHERE user_id = ${userid}
+            SELECT password FROM users WHERE user_id = ${userid} AND org_id = ${orgId}
         `);
 
         if currentPasswordResult is sql:Error {
@@ -165,7 +190,7 @@ Thanks for choosing ResourceHub. We're excited to have you on board!`
 
         // Update to new hashed password
         sql:ExecutionResult result = check database:dbClient->execute(`
-            UPDATE users SET password = ${hashedNewPassword} WHERE user_id = ${userid}
+            UPDATE users SET password = ${hashedNewPassword} WHERE user_id = ${userid} AND org_id = ${orgId}
         `);
 
         if result.affectedRowCount > 0 {
