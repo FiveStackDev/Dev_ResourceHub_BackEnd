@@ -42,6 +42,32 @@ service /orgsettings on database:mainListener {
         return profiles;
     }
 
+    // Create a new organization - admin or authorized users can create organizations
+    resource function post register(@http:Payload Register register) returns json|error {
+
+        sql:ExecutionResult result = check database:dbClient->execute(`
+            INSERT INTO organizations (org_name,org_email)
+            VALUES (${register.org_name}, ${register.email})
+        `);
+        
+        string|error hashedPassword = common:hashPassword(register.password);
+        if (hashedPassword is error) {
+            io:println("Password hashing error: " + hashedPassword.message());
+            return error("Failed to hash password");
+        }
+
+        sql:ExecutionResult result2 = check database:dbClient->execute(`
+            INSERT INTO users (username,profile_picture_url,bio,usertype,email,password)
+            VALUES (${register.username}, 'https://img.freepik.com/free-vector/smiling-young-man-illustration_1308-174669.jpg?t=st=1746539771~exp=1746543371~hmac=66ec0b65bf0ae4d49922a69369cec4c0e3b3424613be723e0ca096a97d1039f1&w=740','', 'SuperAdmin', ${register.email}, ${hashedPassword})
+        `);
+
+        if result.affectedRowCount > 0 && result2.affectedRowCount > 0 {
+            return {message: "Organization created successfully"};
+        } else {
+            return error("Failed to create organization");
+        }
+    }
+
     // Update organization profile - admin or authorized users can update organization details
     resource function put profile/[int orgid](http:Request req, @http:Payload OrgProfile profile) returns json|error {
         jwt:Payload payload = check common:getValidatedPayload(req);
