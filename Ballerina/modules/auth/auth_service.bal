@@ -33,14 +33,18 @@ service /auth on database:authListener {
             }
         }
 
-        if (result.password == credentials.password) {
+        if (check common:verifyPassword(credentials.password, result.password)) {
             // Create a new mutable IssuerConfig
             jwt:IssuerConfig config = {
                 username: credentials.email,
-                issuer: jwtIssuerConfig.issuer,
-                audience: jwtIssuerConfig.audience,
-                signatureConfig: jwtIssuerConfig.signatureConfig,
-                expTime: jwtIssuerConfig.expTime,
+                issuer: "ballerina",
+                audience: ["ballerina.io"],
+                signatureConfig: {
+                    config: {
+                        keyFile: "resources/certificates/certificate.key"
+                    }
+                },
+                expTime: 3600,
                 customClaims: {
                     "role": result.usertype,
                     "username": result.username,
@@ -118,9 +122,12 @@ service /auth on database:authListener {
 
         // Generate simple random password
         string randomPassword = check common:generateSimplePassword(8);
+        
+        // Hash the password before storing
+        string hashedPassword = check common:hashPassword(randomPassword);
 
-        // Update password in database
-        sql:ParameterizedQuery updateQuery = `UPDATE users SET password = ${randomPassword} WHERE email = ${password.email}`;
+        // Update password in database with hashed password
+        sql:ParameterizedQuery updateQuery = `UPDATE users SET password = ${hashedPassword} WHERE email = ${password.email}`;
         sql:ExecutionResult updateResult = check database:dbClient->execute(updateQuery);
 
         if updateResult.affectedRowCount == 0 {
@@ -157,6 +164,45 @@ Support Team`
         return {
             message: "Password reset successful. Check your email for the temporary password."
         };
+    }
+
+    // User registration resource - creates new user with hashed password
+    resource function post register(@http:Payload NewUser newUser) returns json|error {
+        // Validate email format
+        if !newUser.email.includes("@") || !newUser.email.includes(".") {
+            return error("Invalid email format", statusCode = 400);
+        }
+
+        // Check if user already exists
+        sql:ParameterizedQuery checkQuery = `SELECT email FROM users WHERE email = ${newUser.email}`;
+        stream<record {}, sql:Error?> existingUser = database:dbClient->query(checkQuery);
+        
+        boolean userExists = false;
+        check existingUser.forEach(function(record {} user) {
+            userExists = true;
+        });
+        
+        if userExists {
+            return error("User with this email already exists", statusCode = 409);
+        }
+
+        // Hash the password before storing
+        string hashedPassword = check common:hashPassword(newUser.password);
+
+        // Insert new user with hashed password
+        sql:ParameterizedQuery insertQuery = `
+            INSERT INTO users (username, email, password, usertype, profile_picture_url) 
+            VALUES (${newUser.username}, ${newUser.email}, ${hashedPassword}, ${newUser.usertype ?: "User"}, ${newUser.profile_picture_url ?: ""})
+        `;
+        sql:ExecutionResult insertResult = check database:dbClient->execute(insertQuery);
+
+        if insertResult.affectedRowCount > 0 {
+            return {
+                message: "User registered successfully"
+            };
+        } else {
+            return error("Failed to register user", statusCode = 500);
+        }
     }
 }
 

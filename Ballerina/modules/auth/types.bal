@@ -20,3 +20,12 @@ public type UserAuthData record {|
 public type ForgotPassword record {|
     string email;
 |};
+
+// New user registration record
+public type NewUser record {|
+    string username;
+    string email;
+    string password;
+    string? usertype;
+    string? profile_picture_url;
+|};

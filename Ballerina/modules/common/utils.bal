@@ -1,6 +1,8 @@
 import ballerina/http;
 import ballerina/jwt;
 import ballerina/random;
+import ballerina/crypto;
+import ballerina/regex;
 
 // JWT validator configuration - defined here to avoid circular imports
 public jwt:ValidatorConfig jwtValidatorConfig = {
@@ -57,4 +59,50 @@ public function generateSimplePassword(int length) returns string|error {
     }
 
     return chars.reduce(function(string acc, string c) returns string => acc + c, "");
+}
+
+// Generate a random salt for password hashing
+public function generateSalt() returns string|error {
+    final string CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    string[] saltChars = [];
+    
+    foreach int _ in 0 ..< 16 { // 16 character salt
+        int randomIndex = check random:createIntInRange(0, CHARS.length());
+        saltChars.push(CHARS[randomIndex]);
+    }
+    
+    return saltChars.reduce(function(string acc, string c) returns string => acc + c, "");
+}
+
+// Hash password with salt using SHA-256
+public function hashPassword(string password) returns string|error {
+    string salt = check generateSalt();
+    string saltedPassword = password + salt;
+    byte[] passwordBytes = saltedPassword.toBytes();
+    byte[] hashedBytes = crypto:hashSha256(passwordBytes);
+    string hashedPassword = hashedBytes.toBase16();
+    
+    // Return salt:hash format for storage
+    return salt + ":" + hashedPassword;
+}
+
+// Verify password against stored hash
+public function verifyPassword(string password, string storedHash) returns boolean|error {
+    // Split stored hash to get salt and hash
+    string[] parts = regex:split(storedHash, ":");
+    if parts.length() != 2 {
+        return false; // Invalid hash format
+    }
+    
+    string salt = parts[0];
+    string expectedHash = parts[1];
+    
+    // Hash the provided password with the same salt
+    string saltedPassword = password + salt;
+    byte[] passwordBytes = saltedPassword.toBytes();
+    byte[] hashedBytes = crypto:hashSha256(passwordBytes);
+    string actualHash = hashedBytes.toBase16();
+    
+    // Compare hashes (constant-time comparison would be better in production)
+    return actualHash == expectedHash;
 }
