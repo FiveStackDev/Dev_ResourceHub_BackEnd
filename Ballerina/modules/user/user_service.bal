@@ -38,10 +38,18 @@ service /user on database:mainListener {
         }
         // Generate a random password of length 8 
         string randomPassword = check common:generateSimplePassword(8); 
+        
+        // Hash the random password using BCrypt
+        string|error hashedPassword = common:hashPassword(randomPassword);
+        if (hashedPassword is error) {
+            io:println("Password hashing error: " + hashedPassword.message());
+            return error("Failed to hash password");
+        }
+        
         sql:ExecutionResult result = check database:dbClient->execute(` 
             insert into 
             users (username,usertype,email,profile_picture_url,phone_number,password,bio,created_at) 
-            values (${user.email},${user.usertype},${user.email},'https://img.freepik.com/free-vector/smiling-young-man-illustration_1308-174669.jpg?t=st=1746539771~exp=1746543371~hmac=66ec0b65bf0ae4d49922a69369cec4c0e3b3424613be723e0ca096a97d1039f1&w=740',NULL,${randomPassword},${user.bio},NOW()) 
+            values (${user.email},${user.usertype},${user.email},'https://img.freepik.com/free-vector/smiling-young-man-illustration_1308-174669.jpg?t=st=1746539771~exp=1746543371~hmac=66ec0b65bf0ae4d49922a69369cec4c0e3b3424613be723e0ca096a97d1039f1&w=740',NULL,${hashedPassword},${user.bio},NOW()) 
         `); 
         if result.affectedRowCount != 0 { 
             email:Message emailMsg = { 

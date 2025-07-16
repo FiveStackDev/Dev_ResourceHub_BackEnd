@@ -1,3 +1,4 @@
+import ballerina/crypto;
 import ballerina/http;
 import ballerina/jwt;
 import ballerina/random;
@@ -48,13 +49,44 @@ public function hasAnyRole(jwt:Payload payload, string[] allowedRoles) returns b
 
 // Utility function to generate random lowercase password
 public function generateSimplePassword(int length) returns string|error {
-    final string LOWERCASE = "abcdefghijklmnopqrstuvwxyz";
+    final string CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789";
     string[] chars = [];
 
     foreach int _ in 0 ..< length {
-        int randomIndex = check random:createIntInRange(0, LOWERCASE.length());
-        chars.push(LOWERCASE[randomIndex]);
+        int randomIndex = check random:createIntInRange(0, CHARACTERS.length());
+        chars.push(CHARACTERS[randomIndex]);
     }
 
     return chars.reduce(function(string acc, string c) returns string => acc + c, "");
+}
+
+// Utility function to hash password using BCrypt
+public function hashPassword(string password) returns string|error {
+    string|crypto:Error hashedPassword = crypto:hashBcrypt(password);
+    if (hashedPassword is crypto:Error) {
+        return error("Failed to hash password: " + hashedPassword.message());
+    }
+    return hashedPassword;
+}
+
+// Utility function to verify password using BCrypt
+public function verifyPassword(string password, string hashedPassword) returns boolean|error {
+    boolean|crypto:Error isValid = crypto:verifyBcrypt(password, hashedPassword);
+    if (isValid is crypto:Error) {
+        return error("Failed to verify password: " + isValid.message());
+    }
+    return isValid;
+}
+
+// Utility function to hash password with custom work factor
+public function hashPasswordWithWorkFactor(string password, int workFactor) returns string|error {
+    if (workFactor < 4 || workFactor > 31) {
+        return error("Work factor must be between 4 and 31");
+    }
+    
+    string|crypto:Error hashedPassword = crypto:hashBcrypt(password, workFactor);
+    if (hashedPassword is crypto:Error) {
+        return error("Failed to hash password: " + hashedPassword.message());
+    }
+    return hashedPassword;
 }

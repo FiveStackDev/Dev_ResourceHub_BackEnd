@@ -2,7 +2,13 @@
 org = "FiveStack"
 name = "ResourceHub"
 version = "0.1.0"
-distribution = "2201.10.3"
+distribution = "2201.12.0"
+description = "A Ballerina package for managing resources in a hub."
 
 [build-options]
 observabilityIncluded = true
+
+[[dependencies]]
+org = "ballerina"
+name = "crypto"
+version = "1.0.0"

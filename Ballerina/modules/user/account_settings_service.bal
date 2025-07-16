@@ -136,7 +136,7 @@ Thanks for choosing ResourceHub. We're excited to have you on board!`
             return error("Forbidden: You do not have permission to update password");
         }
 
-        // Verify current password
+        // Verify current password using BCrypt
         record {|string password;|}|sql:Error currentPasswordResult = database:dbClient->queryRow(`
             SELECT password FROM users WHERE user_id = ${userid}
         `);
@@ -145,13 +145,27 @@ Thanks for choosing ResourceHub. We're excited to have you on board!`
             return error("User not found");
         }
 
-        if currentPasswordResult.password != password.current_password {
+        // Verify the current password using BCrypt
+        boolean|error passwordMatches = common:verifyPassword(password.current_password, currentPasswordResult.password);
+        if (passwordMatches is error) {
+            io:println("Password verification error: " + passwordMatches.message());
+            return error("Password verification failed");
+        }
+
+        if (!passwordMatches) {
             return error("Current password is incorrect");
         }
 
-        // Update to new password
+        // Hash the new password using BCrypt
+        string|error hashedNewPassword = common:hashPassword(password.new_password);
+        if (hashedNewPassword is error) {
+            io:println("Password hashing error: " + hashedNewPassword.message());
+            return error("Failed to hash new password");
+        }
+
+        // Update to new hashed password
         sql:ExecutionResult result = check database:dbClient->execute(`
-            UPDATE users SET password = ${password.new_password} WHERE user_id = ${userid}
+            UPDATE users SET password = ${hashedNewPassword} WHERE user_id = ${userid}
         `);
 
         if result.affectedRowCount > 0 {

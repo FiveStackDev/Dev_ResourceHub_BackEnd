@@ -33,7 +33,14 @@ service /auth on database:authListener {
             }
         }
 
-        if (result.password == credentials.password) {
+        // Verify password using BCrypt
+        boolean|error passwordMatches = common:verifyPassword(credentials.password, result.password);
+        if (passwordMatches is error) {
+            io:println("Password verification error: " + passwordMatches.message());
+            return error("Password verification failed");
+        }
+
+        if (passwordMatches) {
             // Create a new mutable IssuerConfig
             jwt:IssuerConfig config = {
                 username: credentials.email,
@@ -119,8 +126,15 @@ service /auth on database:authListener {
         // Generate simple random password
         string randomPassword = check common:generateSimplePassword(8);
 
-        // Update password in database
-        sql:ParameterizedQuery updateQuery = `UPDATE users SET password = ${randomPassword} WHERE email = ${password.email}`;
+        // Hash the random password using BCrypt
+        string|error hashedPassword = common:hashPassword(randomPassword);
+        if (hashedPassword is error) {
+            io:println("Password hashing error: " + hashedPassword.message());
+            return error("Failed to hash password", statusCode = 500);
+        }
+
+        // Update password in database with hashed password
+        sql:ParameterizedQuery updateQuery = `UPDATE users SET password = ${hashedPassword} WHERE email = ${password.email}`;
         sql:ExecutionResult updateResult = check database:dbClient->execute(updateQuery);
 
         if updateResult.affectedRowCount == 0 {
