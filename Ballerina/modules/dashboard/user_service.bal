@@ -98,14 +98,17 @@ service /dashboard/user on database:dashboardListener {
                 maintenanceMonthlyData[row.month - 1] = row.count;
             };
 
-        // Construct the JSON response
+        // Month labels for charts
+        string[] monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        // Construct the JSON response with monthLabels
         return {
             "mealsToday": mealsToday,
             "assets": assetsCount,
             "maintenanceRequests": maintenanceCount,
             "mealsMonthlyData": mealsMonthlyData,
             "assetsMonthlyData": assetsMonthlyData,
-            "maintenanceMonthlyData": maintenanceMonthlyData
+            "maintenanceMonthlyData": maintenanceMonthlyData,
+            "monthLabels": monthLabels
         };
     }
 

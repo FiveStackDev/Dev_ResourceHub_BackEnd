@@ -128,31 +128,37 @@ service /dashboard/admin on database:dashboardListener {
             monthlyMaintenanceCounts[row.month - 1] = row.count;
         }
 
-        // Construct the JSON response
+        // Month labels for charts
+        string[] monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        // Construct the JSON response with monthLabels
         return [
             {
                 "title": "Total Users",
                 "value": userCount,
                 "icon": "Users",
-                "monthlyData": monthlyUserCounts
+                "monthlyData": monthlyUserCounts,
+                "monthLabels": monthLabels
             },
             {
                 "title": "Meals Served",
                 "value": mealEventsCount,
                 "icon": "Utensils",
-                "monthlyData": monthlyMealCounts
+                "monthlyData": monthlyMealCounts,
+                "monthLabels": monthLabels
             },
             {
                 "title": "Resources",
                 "value": assetRequestsCount,
                 "icon": "Box",
-                "monthlyData": monthlyAssetRequestCounts
+                "monthlyData": monthlyAssetRequestCounts,
+                "monthLabels": monthLabels
             },
             {
                 "title": "Services",
                 "value": maintenanceCount,
                 "icon": "Wrench",
-                "monthlyData": monthlyMaintenanceCounts
+                "monthlyData": monthlyMaintenanceCounts,
+                "monthLabels": monthLabels
             }
         ];
     }
