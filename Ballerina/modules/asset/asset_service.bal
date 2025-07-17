@@ -20,7 +20,10 @@ service /asset on database:mainListener{
         if (!common:hasAnyRole(payload, ["Admin", "User","SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
-        stream<Asset, sql:Error?> resultStream = database:dbClient->query(`SELECT * FROM assets`);
+        
+        int orgId = check common:getOrgId(payload);
+        
+        stream<Asset, sql:Error?> resultStream = database:dbClient->query(`SELECT * FROM assets WHERE org_id = ${orgId}`);
         Asset[] assets = [];
         check resultStream.forEach(function(Asset asset){
             assets.push(asset);
@@ -34,9 +37,12 @@ service /asset on database:mainListener{
         if (!common:hasAnyRole(payload, ["Admin","SuperAdmin"])) {
             return error("Forbidden: You do not have permission to add assets");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         sql:ExecutionResult result = check database:dbClient->execute(
-            `insert into assets (asset_name, category, quantity, condition_type, location) 
-              values (${asset.asset_name}, ${asset.category}, ${asset.quantity}, ${asset.condition_type}, ${asset.location})`
+            `insert into assets (asset_name, category, quantity, condition_type, location, org_id) 
+              values (${asset.asset_name}, ${asset.category}, ${asset.quantity}, ${asset.condition_type}, ${asset.location}, ${orgId})`
         );
         if result.affectedRowCount == 0 {
             return {
@@ -55,14 +61,17 @@ service /asset on database:mainListener{
         if (!common:hasAnyRole(payload, ["Admin","SuperAdmin"])) {
             return error("Forbidden: You do not have permission to update assets");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         sql:ExecutionResult result = check database:dbClient->execute(`
             UPDATE assets 
             SET asset_name = ${asset.asset_name}, category = ${asset.category}, quantity = ${asset.quantity}, condition_type = ${asset.condition_type}, location = ${asset.location}, is_available = ${asset.is_available} 
-            WHERE asset_id = ${id}
+            WHERE asset_id = ${id} AND org_id = ${orgId}
         `);
         if result.affectedRowCount == 0 {
             return {
-                message: "Asset not found"
+                message: "Asset not found or you don't have permission to update it"
             };
         }
         return {
@@ -77,16 +86,19 @@ service /asset on database:mainListener{
         if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to delete assets");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         sql:ExecutionResult result = check database:dbClient->execute(`
-            DELETE FROM assets WHERE asset_id = ${id}
+            DELETE FROM assets WHERE asset_id = ${id} AND org_id = ${orgId}
         `);
         if result.affectedRowCount == 0 {
             return {
-                message: "asset not found"
+                message: "Asset not found or you don't have permission to delete it"
             };
         }
         return {
-            message: "asset deleted successfully"
+            message: "Asset deleted successfully"
         };
     }
 }

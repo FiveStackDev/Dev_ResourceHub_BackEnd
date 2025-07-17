@@ -20,7 +20,10 @@ service /auth on database:authListener {
     // Login resource - issues JWT token with role claim
     resource function post login(@http:Payload Credentials credentials) returns json|error {
 
-        sql:ParameterizedQuery query = `SELECT username, user_id, email, password, usertype, profile_picture_url FROM users WHERE email = ${credentials.email}`;
+        sql:ParameterizedQuery query = `SELECT u.username, u.user_id, u.email, u.password, u.usertype, u.profile_picture_url, u.org_id, o.org_logo 
+                                       FROM users u 
+                                       LEFT JOIN organizations o ON u.org_id = o.org_id 
+                                       WHERE u.email = ${credentials.email}`;
         UserAuthData|sql:Error result = database:dbClient->queryRow(query);
 
         if (result is sql:Error) {
@@ -53,7 +56,9 @@ service /auth on database:authListener {
                     "username": result.username,
                     "id": result.user_id,
                     "email": result.email,
-                    "profile_picture": result.profile_picture_url
+                    "profile_picture": result.profile_picture_url,
+                    "org_id": result.org_id,
+                    "org_logo": result.org_logo ?: ""
                 }
             };
 

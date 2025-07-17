@@ -26,6 +26,13 @@ service /orgsettings on database:mainListener {
             return error("Forbidden: You do not have permission to access this resource");
         }
 
+        int userOrgId = check common:getOrgId(payload);
+        
+        // Ensure users can only access their own organization's data
+        if (orgid != userOrgId) {
+            return error("Forbidden: You can only access your own organization's details");
+        }
+
         stream<OrgProfile, sql:Error?> resultStream = database:dbClient->query(`
             SELECT org_name,
             org_email,
@@ -42,31 +49,57 @@ service /orgsettings on database:mainListener {
         return profiles;
     }
 
-    // Create a new organization - admin or authorized users can create organizations
+        // Create a new organization - admin or authorized users can create organizations
     resource function post register(@http:Payload Register register) returns json|error {
+        
+        // Check if email already exists in the system (no user_id yet, so just check for any user with this email)
+        stream<record {| int count; |}, sql:Error?> emailCheckStream = 
+            database:dbClient->query(`SELECT COUNT(*) as count FROM users WHERE email = ${register.email}`);
 
+        record {| int count; |}[] emailCheckResult = [];
+        check emailCheckStream.forEach(function(record {| int count; |} result) {
+            emailCheckResult.push(result);
+        });
+
+        if (emailCheckResult.length() > 0 && emailCheckResult[0].count > 0) {
+            return {
+                message: "Email already exists in a organization. Please use a different email address."
+            };
+        }
+
+        // Step 1: Create the organization first
         sql:ExecutionResult result = check database:dbClient->execute(`
             INSERT INTO organizations (org_name,org_email)
             VALUES (${register.org_name}, ${register.email})
         `);
         
+        // Step 2: Get the newly created organization ID
+        int|string? orgId = result.lastInsertId;
+        if (orgId is () || orgId is string) {
+            return error("Failed to get organization ID after creation");
+        }
+        
+        // Step 3: Hash the password
         string|error hashedPassword = common:hashPassword(register.password);
         if (hashedPassword is error) {
             io:println("Password hashing error: " + hashedPassword.message());
             return error("Failed to hash password");
         }
 
+        // Step 4: Create the SuperAdmin user for this organization
         sql:ExecutionResult result2 = check database:dbClient->execute(`
-            INSERT INTO users (username,profile_picture_url,bio,usertype,email,password)
-            VALUES (${register.username}, 'https://img.freepik.com/free-vector/smiling-young-man-illustration_1308-174669.jpg?t=st=1746539771~exp=1746543371~hmac=66ec0b65bf0ae4d49922a69369cec4c0e3b3424613be723e0ca096a97d1039f1&w=740','', 'SuperAdmin', ${register.email}, ${hashedPassword})
+            INSERT INTO 
+            users (username,usertype,email,profile_picture_url,phone_number,password,bio,created_at,org_id) 
+            VALUES (${register.username},'SuperAdmin',${register.email},'https://img.freepik.com/free-vector/smiling-young-man-illustration_1308-174669.jpg?t=st=1746539771~exp=1746543371~hmac=66ec0b65bf0ae4d49922a69369cec4c0e3b3424613be723e0ca096a97d1039f1&w=740',NULL,${hashedPassword},"Organization Owner",NOW(),${orgId}) 
         `);
 
         if result.affectedRowCount > 0 && result2.affectedRowCount > 0 {
-            return {message: "Organization created successfully"};
+            return {message: "Organization created successfully", orgId: orgId};
         } else {
             return error("Failed to create organization");
         }
     }
+
 
     // Update organization profile - admin or authorized users can update organization details
     resource function put profile/[int orgid](http:Request req, @http:Payload OrgProfile profile) returns json|error {
@@ -77,12 +110,18 @@ service /orgsettings on database:mainListener {
             return error("Forbidden: You do not have permission to update organization profile");
         }
 
+        int userOrgId = check common:getOrgId(payload);
+        
+        // Ensure users can only update their own organization's data
+        if (orgid != userOrgId) {
+            return error("Forbidden: You can only update your own organization's profile");
+        }
+
         sql:ExecutionResult result = check database:dbClient->execute(`
             UPDATE organizations 
             SET org_name = ${profile.org_name}, 
                 org_logo = ${profile.org_logo}, 
-                org_address = ${profile.org_address ?: ""}, 
-                org_email = ${profile.org_email ?: ""}
+                org_address = ${profile.org_address ?: ""}
             WHERE org_id = ${orgid}
         `);
 
@@ -100,6 +139,13 @@ service /orgsettings on database:mainListener {
         // Only allow users with specific roles (e.g., admin, manager)
         if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to update organization email");
+        }
+
+        int userOrgId = check common:getOrgId(payload);
+        
+        // Ensure users can only update their own organization's data
+        if (orgid != userOrgId) {
+            return error("Forbidden: You can only update your own organization's email");
         }
 
         sql:ExecutionResult result = check database:dbClient->execute(`

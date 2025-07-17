@@ -20,6 +20,9 @@ service /assetrequest on database:mainListener {
         if (!common:hasAnyRole(payload, ["Admin","SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         stream<AssetRequest, sql:Error?> resultstream = database:dbClient->query
         (`SELECT 
         ra.requestedasset_id,
@@ -34,10 +37,12 @@ service /assetrequest on database:mainListener {
         ra.status,
         ra.is_returning,
         DATEDIFF(ra.handover_date, CURDATE()) AS remaining_days,
-        ra.quantity
+        ra.quantity,
+        ra.org_id
         FROM requestedassets ra
         JOIN users u ON ra.user_id = u.user_id
-        JOIN assets a ON ra.asset_id = a.asset_id;`);
+        JOIN assets a ON ra.asset_id = a.asset_id
+        WHERE ra.org_id = ${orgId};`);
 
         AssetRequest[] assetrequests = [];
 
@@ -53,6 +58,9 @@ service /assetrequest on database:mainListener {
         if (!common:hasAnyRole(payload, ["Admin" ,"User","SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         stream<AssetRequest, sql:Error?> resultstream = database:dbClient->query
         (`SELECT 
         ra.requestedasset_id,
@@ -67,11 +75,12 @@ service /assetrequest on database:mainListener {
         ra.status,
         ra.is_returning,
         DATEDIFF(ra.handover_date, CURDATE()) AS remaining_days,
-        ra.quantity
+        ra.quantity,
+        ra.org_id
         FROM requestedassets ra
         JOIN users u ON ra.user_id = u.user_id
         JOIN assets a ON ra.asset_id = a.asset_id
-        WHERE ra.user_id = ${userid};`);
+        WHERE ra.user_id = ${userid} AND ra.org_id = ${orgId};`);
 
         AssetRequest[] assetrequests = [];
 
@@ -88,10 +97,12 @@ service /assetrequest on database:mainListener {
             return error("Forbidden: You do not have permission to add asset requests");
         }
 
+        int orgId = check common:getOrgId(payload);
+
         sql:ExecutionResult result = check database:dbClient->execute(`
-            INSERT INTO requestedassets (user_id, asset_id, submitted_date, handover_date, quantity, status, is_returning)
+            INSERT INTO requestedassets (user_id, asset_id, submitted_date, handover_date, quantity, status, is_returning, org_id)
             VALUES (${assetrequest.user_id}, ${assetrequest.asset_id}, ${assetrequest.submitted_date}, 
-                    ${assetrequest.handover_date}, ${assetrequest.quantity}, 'pending', false)
+                    ${assetrequest.handover_date}, ${assetrequest.quantity}, 'pending', false, ${orgId})
         `);
 
         if result.affectedRowCount == 0 {
@@ -106,12 +117,14 @@ service /assetrequest on database:mainListener {
             return error("Forbidden: You do not have permission to delete asset requests");
         }
 
+        int orgId = check common:getOrgId(payload);
+
         sql:ExecutionResult result = check database:dbClient->execute(`
-            DELETE FROM requestedassets WHERE requestedasset_id = ${id}
+            DELETE FROM requestedassets WHERE requestedasset_id = ${id} AND org_id = ${orgId}
         `);
 
         if result.affectedRowCount == 0 {
-            return {message: "Asset request not found"};
+            return {message: "Asset request not found or you don't have permission to delete it"};
         }
         return {message: "Asset request deleted successfully"};
     }
@@ -122,17 +135,19 @@ service /assetrequest on database:mainListener {
             return error("Forbidden: You do not have permission to update asset requests");
         }
 
+        int orgId = check common:getOrgId(payload);
+
         sql:ExecutionResult result = check database:dbClient->execute(`
             UPDATE requestedassets 
             SET status = ${assetrequest.status ?: "pending"}, 
             is_returning = ${assetrequest.is_returning ?: false},
             quantity = ${assetrequest.quantity},
             handover_date = ${assetrequest.handover_date}
-            WHERE requestedasset_id = ${id}
+            WHERE requestedasset_id = ${id} AND org_id = ${orgId}
         `);
 
         if result.affectedRowCount == 0 {
-            return {message: "Asset request not found"};
+            return {message: "Asset request not found or you don't have permission to update it"};
         }
         return {message: "Asset request updated successfully"};
     }
@@ -142,6 +157,8 @@ service /assetrequest on database:mainListener {
         if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access due assets");
         }
+        
+        int orgId = check common:getOrgId(payload);
         
         stream<AssetRequest, sql:Error?> resultstream = database:dbClient->query
         (`SELECT 
@@ -157,13 +174,15 @@ service /assetrequest on database:mainListener {
         DATEDIFF(ra.handover_date, CURDATE()) AS remaining_days,
         ra.quantity,
         ra.status,
-        ra.is_returning
+        ra.is_returning,
+        ra.org_id
         FROM requestedassets ra
         JOIN users u ON ra.user_id = u.user_id
         JOIN assets a ON ra.asset_id = a.asset_id
         WHERE DATEDIFF(ra.handover_date, CURDATE()) < 0
         AND ra.is_returning = true
         AND ra.status = 'Accepted'
+        AND ra.org_id = ${orgId}
         ORDER BY remaining_days ASC;`);
 
         AssetRequest[] assetrequests = [];
@@ -181,6 +200,8 @@ service /assetrequest on database:mainListener {
             return error("Forbidden: You do not have permission to access due assets");
         }
         
+        int orgId = check common:getOrgId(payload);
+        
         stream<AssetRequest, sql:Error?> resultstream = database:dbClient->query
         (`SELECT 
         ra.requestedasset_id,
@@ -195,7 +216,8 @@ service /assetrequest on database:mainListener {
         DATEDIFF(ra.handover_date, CURDATE()) AS remaining_days,
         ra.quantity,
         ra.status,
-        ra.is_returning
+        ra.is_returning,
+        ra.org_id
         FROM requestedassets ra
         JOIN users u ON ra.user_id = u.user_id
         JOIN assets a ON ra.asset_id = a.asset_id
@@ -203,6 +225,7 @@ service /assetrequest on database:mainListener {
         AND ra.user_id = ${userid}
         AND ra.is_returning = true
         AND ra.status = 'Accepted'
+        AND ra.org_id = ${orgId}
         ORDER BY remaining_days ASC;`);
 
         AssetRequest[] assetrequests = [];

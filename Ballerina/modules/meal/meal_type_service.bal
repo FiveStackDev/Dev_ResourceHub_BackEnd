@@ -22,8 +22,11 @@ service /mealtype on database:mainListener{
         if (!common:hasAnyRole(payload, ["Admin","User","SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         stream<MealType, sql:Error?> resultStream = 
-            database:dbClient->query(`SELECT mealtype_id, mealtype_name , mealtype_image_url  FROM mealtypes`);
+            database:dbClient->query(`SELECT mealtype_id, mealtype_name, mealtype_image_url, org_id FROM mealtypes WHERE org_id = ${orgId}`);
         MealType[] mealtypes = [];
         check resultStream.forEach(function(MealType meal) {
             mealtypes.push(meal);
@@ -37,10 +40,13 @@ service /mealtype on database:mainListener{
         if (!common:hasAnyRole(payload, ["Admin","SuperAdmin"])) {
             return error("Forbidden: You do not have permission to add meal types");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         io:println("Received meal type data: " + mealType.toJsonString());
         sql:ExecutionResult result = check database:dbClient->execute(`
-            INSERT INTO mealtypes (mealtype_name, mealtype_image_url)
-            VALUES (${mealType.mealtype_name}, ${mealType.mealtype_image_url})
+            INSERT INTO mealtypes (mealtype_name, mealtype_image_url, org_id)
+            VALUES (${mealType.mealtype_name}, ${mealType.mealtype_image_url}, ${orgId})
         `);
         int|string? lastInsertId = result.lastInsertId;
         if lastInsertId is int {
@@ -61,13 +67,16 @@ service /mealtype on database:mainListener{
         if (!common:hasAnyRole(payload, ["Admin","SuperAdmin"])) {
             return error("Forbidden: You do not have permission to update meal types");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         sql:ExecutionResult result = check database:dbClient->execute(`
             UPDATE mealtypes SET mealtype_name = ${mealType.mealtype_name}, mealtype_image_url = ${mealType.mealtype_image_url}
-            WHERE mealtype_id = ${id}
+            WHERE mealtype_id = ${id} AND org_id = ${orgId}
         `);
         if result.affectedRowCount == 0 {
             return {
-                message: "Meal type not found"
+                message: "Meal type not found or you don't have permission to update it"
             };
         }
         return {
@@ -82,12 +91,15 @@ service /mealtype on database:mainListener{
         if (!common:hasAnyRole(payload, ["Admin","SuperAdmin"])) {
             return error("Forbidden: You do not have permission to delete meal types");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         sql:ExecutionResult result = check database:dbClient->execute(`
-            DELETE FROM mealtypes WHERE mealtype_id = ${id}
+            DELETE FROM mealtypes WHERE mealtype_id = ${id} AND org_id = ${orgId}
         `);
         if result.affectedRowCount == 0 {
             return {
-                message: "Meal type not found"
+                message: "Meal type not found or you don't have permission to delete it"
             };
         }
         return {

@@ -22,11 +22,15 @@ service /dashboard/user on database:dashboardListener {
         if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         // Query for meals today (assuming meal_request_date is a timestamp)
         record {|int meals_today;|} mealsTodayResult = check database:dbClient->queryRow(
             `SELECT COUNT(requestedmeal_id) AS meals_today 
              FROM requestedmeals 
              WHERE user_id = ${userId} 
+             AND org_id = ${orgId}
              AND DATE(meal_request_date) = CURRENT_DATE`
         );
         int mealsToday = mealsTodayResult.meals_today;
@@ -35,7 +39,8 @@ service /dashboard/user on database:dashboardListener {
         record {|int assets_count;|} assetsResult = check database:dbClient->queryRow(
             `SELECT COUNT(requestedasset_id) AS assets_count 
              FROM requestedassets
-             WHERE user_id = ${userId}`
+             WHERE user_id = ${userId}
+             AND org_id = ${orgId}`
         );
         int assetsCount = assetsResult.assets_count;
 
@@ -43,7 +48,8 @@ service /dashboard/user on database:dashboardListener {
         record {|int maintenance_count;|} maintenanceResult = check database:dbClient->queryRow(
             `SELECT COUNT(maintenance_id) AS maintenance_count 
              FROM maintenance 
-             WHERE user_id = ${userId}`
+             WHERE user_id = ${userId}
+             AND org_id = ${orgId}`
         );
         int maintenanceCount = maintenanceResult.maintenance_count;
 
@@ -52,6 +58,7 @@ service /dashboard/user on database:dashboardListener {
             `SELECT EXTRACT(MONTH FROM meal_request_date) AS month, COUNT(requestedmeal_id) AS count 
              FROM requestedmeals
              WHERE user_id = ${userId} 
+             AND org_id = ${orgId}
              GROUP BY EXTRACT(MONTH FROM meal_request_date) 
              ORDER BY month`
         );
@@ -66,6 +73,7 @@ service /dashboard/user on database:dashboardListener {
             `SELECT EXTRACT(MONTH FROM submitted_date) AS month, COUNT(requestedasset_id) AS count 
              FROM requestedassets
              WHERE user_id = ${userId} 
+             AND org_id = ${orgId}
              GROUP BY EXTRACT(MONTH FROM submitted_date) 
              ORDER BY month`
         );
@@ -80,6 +88,7 @@ service /dashboard/user on database:dashboardListener {
             `SELECT EXTRACT(MONTH FROM submitted_date) AS month, COUNT(maintenance_id) AS count 
              FROM maintenance 
              WHERE user_id = ${userId} 
+             AND org_id = ${orgId}
              GROUP BY EXTRACT(MONTH FROM submitted_date) 
              ORDER BY month`
         );
@@ -89,14 +98,17 @@ service /dashboard/user on database:dashboardListener {
                 maintenanceMonthlyData[row.month - 1] = row.count;
             };
 
-        // Construct the JSON response
+        // Month labels for charts
+        string[] monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        // Construct the JSON response with monthLabels
         return {
             "mealsToday": mealsToday,
             "assets": assetsCount,
             "maintenanceRequests": maintenanceCount,
             "mealsMonthlyData": mealsMonthlyData,
             "assetsMonthlyData": assetsMonthlyData,
-            "maintenanceMonthlyData": maintenanceMonthlyData
+            "maintenanceMonthlyData": maintenanceMonthlyData,
+            "monthLabels": monthLabels
         };
     }
 
@@ -107,6 +119,7 @@ service /dashboard/user on database:dashboardListener {
             return error("Forbidden: You do not have permission to access user activities");
         }
 
+        int orgId = check common:getOrgId(payload);
         json[] activities = [];
 
         // Fetch the last meal request
@@ -118,6 +131,7 @@ service /dashboard/user on database:dashboardListener {
             `SELECT requestedmeal_id, meal_type_id, meal_request_date 
              FROM requestedmeals 
              WHERE user_id = ${userId} 
+             AND org_id = ${orgId}
              ORDER BY meal_request_date DESC 
              LIMIT 1`
         );
@@ -141,6 +155,7 @@ service /dashboard/user on database:dashboardListener {
             `SELECT  maintenance_id, description, submitted_date 
              FROM maintenance 
              WHERE user_id = ${userId} 
+             AND org_id = ${orgId}
              ORDER BY submitted_date DESC 
              LIMIT 1`
         );
@@ -164,7 +179,8 @@ service /dashboard/user on database:dashboardListener {
             `SELECT ar.requestedasset_id, a.asset_name, submitted_date 
              FROM requestedassets ar 
              join assets a on a.asset_id=ar.asset_id
-             WHERE user_id = ${userId} 
+             WHERE ar.user_id = ${userId} 
+             AND ar.org_id = ${orgId}
              ORDER BY submitted_date DESC 
              LIMIT 1`
         );

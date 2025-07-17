@@ -51,14 +51,34 @@ service /report on database:reportListener {
 
 function generateAndSendReport(string endpoint, string reportTitle, string fileName, string reportName, string frequency) returns error? {
 
-    // 1. Fetch data for the report
-    io:println("Step 1: Fetching data for the report from endpoint: " + endpoint);
+    // First, get all organizations that have scheduled reports for this type and frequency
+    sql:ParameterizedQuery orgQuery = `SELECT DISTINCT s.org_id FROM schedulereports s WHERE s.report_name = ${reportName} AND s.frequency = ${frequency}`;
+    stream<record {| int org_id; |}, error?> orgStream = database:dbClient->query(orgQuery);
+    int[] orgIds = [];
+    error? orgError = orgStream.forEach(function(record {| int org_id; |} row) {
+        orgIds.push(row.org_id);
+    });
+    check orgError;
+    check orgStream.close();
+
+    // Generate reports for each organization
+    foreach int orgId in orgIds {
+        check generateAndSendReportForOrg(endpoint, reportTitle, fileName, reportName, frequency, orgId);
+    }
+    
+    return;
+}
+
+function generateAndSendReportForOrg(string endpoint, string reportTitle, string fileName, string reportName, string frequency, int orgId) returns error? {
+
+    // 1. Fetch data for the report for this specific organization
+    io:println("Step 1: Fetching data for the report from endpoint: " + endpoint + " for org: " + orgId.toString());
     http:Client dataClient = check new ("http://localhost:9091");
-    http:Response dataResp = check dataClient->get(endpoint);
+    http:Response dataResp = check dataClient->get(endpoint + "/" + orgId.toString());
     json data = check dataResp.getJsonPayload();
 
     // 2. Generate HTML content
-    io:println("Step 2: Generating HTML content for the report");
+    io:println("Step 2: Generating HTML content for the report for org: " + orgId.toString());
     string htmlContent = "<!DOCTYPE html>\n<html>\n<head>\n" +
                         "<title>" + reportTitle + "</title>\n" +
                         "<style>table { border-collapse: collapse; width: 100%; }" +
@@ -94,7 +114,7 @@ function generateAndSendReport(string endpoint, string reportTitle, string fileN
     htmlContent += "</table></body></html>";
 
     // 3. Convert HTML to PDF using PDFShift API
-    io:println("Step 3: Converting HTML to PDF using PDFShift API");
+    io:println("Step 3: Converting HTML to PDF using PDFShift API for org: " + orgId.toString());
     http:Client pdfShiftClient = check new ("https://api.pdfshift.io");
     json pdfRequest = {
         "source": htmlContent,
@@ -112,11 +132,11 @@ function generateAndSendReport(string endpoint, string reportTitle, string fileN
     );
 
     byte[] pdfBytes = check pdfResponse.getBinaryPayload();
-    io:println("Step 3: PDF generated, size: " + pdfBytes.length().toString() + " bytes");
+    io:println("Step 3: PDF generated, size: " + pdfBytes.length().toString() + " bytes for org: " + orgId.toString());
 
-    // 4. Fetch user emails from DB for this report type and frequency
-    io:println("Step 4: Fetching user emails for report type: " + reportName + ", frequency: " + frequency);
-    sql:ParameterizedQuery pq = `SELECT u.email FROM schedulereports s JOIN users u ON s.user_id = u.user_id WHERE s.report_name = ${reportName} AND s.frequency = ${frequency}`;
+    // 4. Fetch user emails from DB for this report type, frequency, and organization
+    io:println("Step 4: Fetching user emails for report type: " + reportName + ", frequency: " + frequency + ", org: " + orgId.toString());
+    sql:ParameterizedQuery pq = `SELECT u.email FROM schedulereports s JOIN users u ON s.user_id = u.user_id WHERE s.report_name = ${reportName} AND s.frequency = ${frequency} AND s.org_id = ${orgId}`;
     stream<record {| string email; |}, error?> emailStream = database:dbClient->query(pq);
     string[] emailList = [];
     error? e = emailStream.forEach(function(record {| string email; |} row) {
@@ -125,15 +145,15 @@ function generateAndSendReport(string endpoint, string reportTitle, string fileN
     check e;
     check emailStream.close();
 
-    io:println("Step 4: Number of emails found: " + emailList.length().toString());
+    io:println("Step 4: Number of emails found: " + emailList.length().toString() + " for org: " + orgId.toString());
     if emailList.length() == 0 {
-        io:println("No users found for this report and frequency");
+        io:println("No users found for this report and frequency in org: " + orgId.toString());
         // Cancel the email sending part if no emails found
         return;
     }
 
-    // 5. Send email with PDF attachment to all users (pattern from email_service.bal)
-    io:println("Step 5: Sending email with PDF attachment to users");
+    // 5. Send email with PDF attachment to all users in this organization
+    io:println("Step 5: Sending email with PDF attachment to users in org: " + orgId.toString());
     mime:Entity pdfAttachment = new;
     pdfAttachment.setByteArray(pdfBytes, "application/pdf");
     pdfAttachment.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
@@ -146,7 +166,7 @@ function generateAndSendReport(string endpoint, string reportTitle, string fileN
     };
 
     check common:emailClient->sendMessage(emailMessage);
-    io:println("Step 5: Email sent successfully to all users.");
+    io:println("Step 5: Email sent successfully to all users in org: " + orgId.toString());
 
     // Optionally, log or return a message
     return;

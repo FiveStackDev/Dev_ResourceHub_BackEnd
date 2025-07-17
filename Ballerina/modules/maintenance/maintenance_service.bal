@@ -21,6 +21,9 @@ service /maintenance on database:mainListener {
         if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         stream<Maintenance, sql:Error?> resultStream =
             database:dbClient->query(`SELECT 
             m.maintenance_id,
@@ -31,9 +34,11 @@ service /maintenance on database:mainListener {
             m.status,
             m.submitted_date,
             u.profile_picture_url as profilePicture,
-            u.username
+            u.username,
+            m.org_id
             FROM maintenance m
             JOIN users u ON m.user_id = u.user_id
+            WHERE m.org_id = ${orgId}
         `);
         Maintenance[] maintenances = [];
         check resultStream.forEach(function(Maintenance maintenance) {
@@ -47,6 +52,9 @@ service /maintenance on database:mainListener {
         if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         stream<Maintenance, sql:Error?> resultStream =
             database:dbClient->query(`SELECT 
             m.maintenance_id,
@@ -57,10 +65,11 @@ service /maintenance on database:mainListener {
             m.status,
             m.submitted_date,
             u.profile_picture_url as profilePicture,
-            u.username
+            u.username,
+            m.org_id
             FROM maintenance m
             JOIN users u ON m.user_id = u.user_id
-            WHERE m.user_id = ${user_id}
+            WHERE m.user_id = ${user_id} AND m.org_id = ${orgId}
         `);
         Maintenance[] maintenances = [];
         check resultStream.forEach(function(Maintenance maintenance) {
@@ -75,10 +84,13 @@ service /maintenance on database:mainListener {
         if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to add maintenance requests");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         sql:ExecutionResult result = check database:dbClient->execute(`
-            INSERT INTO maintenance (user_id, name, description, priority_level, status, submitted_date)
+            INSERT INTO maintenance (user_id, name, description, priority_level, status, submitted_date, org_id)
             VALUES (${maintenance.user_id}, ${maintenance.name ?: ""}, ${maintenance.description}, 
-                    ${maintenance.priorityLevel}, 'pending', NOW())
+                    ${maintenance.priorityLevel}, 'pending', NOW(), ${orgId})
         `);
         if (result.affectedRowCount == 0) {
             return {message: "Failed to add maintenance request"};
@@ -92,11 +104,14 @@ service /maintenance on database:mainListener {
         if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to delete maintenance requests");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         sql:ExecutionResult result = check database:dbClient->execute(`
-            DELETE FROM maintenance WHERE maintenance_id = ${id}
+            DELETE FROM maintenance WHERE maintenance_id = ${id} AND org_id = ${orgId}
         `);
         if (result.affectedRowCount == 0) {
-            return {message: "Maintenance request not found"};
+            return {message: "Maintenance request not found or you don't have permission to delete it"};
         }
         return {message: "Maintenance request has been deleted "};
     }
@@ -107,16 +122,19 @@ service /maintenance on database:mainListener {
         if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to update maintenance requests");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         sql:ExecutionResult result = check database:dbClient->execute(`
             UPDATE maintenance 
             SET name = ${maintenance.name ?: ""}, 
                 description = ${maintenance.description}, 
                 priority_level = ${maintenance.priorityLevel}, 
                 status = ${maintenance.status ?: "pending"}
-            WHERE maintenance_id = ${id}
+            WHERE maintenance_id = ${id} AND org_id = ${orgId}
         `);
         if (result.affectedRowCount == 0) {
-            return {message: "Maintenance request not found"};
+            return {message: "Maintenance request not found or you don't have permission to update it"};
         }
         return {message: "Maintenance request has been updated"};
     }

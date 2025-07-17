@@ -11,4 +11,5 @@ public type Maintenance record {|
     string submitted_date?;
     string profilePicture?;
     string username?;
+    int org_id?;
 |};

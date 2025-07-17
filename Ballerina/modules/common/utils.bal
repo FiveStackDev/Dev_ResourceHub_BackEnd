@@ -47,6 +47,31 @@ public function hasAnyRole(jwt:Payload payload, string[] allowedRoles) returns b
     return false;
 }
 
+// Helper function to extract user_id from JWT payload
+public function getUserId(jwt:Payload payload) returns int|error {
+    anydata userIdClaim = payload["id"];
+    if userIdClaim is int {
+        return userIdClaim;
+    }
+    return error("User ID not found in token");
+}
+
+// Helper function to extract org_id from JWT payload
+public function getOrgId(jwt:Payload payload) returns int|error {
+    anydata orgIdClaim = payload["org_id"];
+    if orgIdClaim is int {
+        return orgIdClaim;
+    }
+    return error("Organization ID not found in token");
+}
+
+// Helper function to extract both user_id and org_id from JWT payload
+public function getUserAndOrgId(jwt:Payload payload) returns [int, int]|error {
+    int userId = check getUserId(payload);
+    int orgId = check getOrgId(payload);
+    return [userId, orgId];
+}
+
 // Utility function to generate random lowercase password
 public function generateSimplePassword(int length) returns string|error {
     final string CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789";

@@ -7,6 +7,7 @@ public type Asset record {|
     string condition_type;
     string location;
     boolean is_available?;
+    int org_id?;
 |};
 
 // AssetRequest record type representing an asset request
@@ -24,4 +25,5 @@ public type AssetRequest record {|
     string status?;
     boolean is_returning?;
     string asset_name?;
+    int org_id?;
 |};

@@ -20,23 +20,27 @@ service /dashboard/admin on database:dashboardListener {
         if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         // Existing counts
-        record {|int user_count;|} userResult = check database:dbClient->queryRow(`SELECT COUNT(user_id) AS user_count FROM users`);
+        record {|int user_count;|} userResult = check database:dbClient->queryRow(`SELECT COUNT(user_id) AS user_count FROM users WHERE org_id = ${orgId}`);
         int userCount = userResult.user_count;
 
-        record {|int mealevents_count;|} mealResult = check database:dbClient->queryRow(`SELECT COUNT(requestedmeal_id) AS mealevents_count FROM requestedmeals`);
+        record {|int mealevents_count;|} mealResult = check database:dbClient->queryRow(`SELECT COUNT(requestedmeal_id) AS mealevents_count FROM requestedmeals WHERE org_id = ${orgId}`);
         int mealEventsCount = mealResult.mealevents_count;
 
-        record {|int assetrequests_count;|} assetRequestsResult = check database:dbClient->queryRow(`SELECT COUNT(requestedasset_id) AS assetrequests_count FROM requestedassets`);
+        record {|int assetrequests_count;|} assetRequestsResult = check database:dbClient->queryRow(`SELECT COUNT(requestedasset_id) AS assetrequests_count FROM requestedassets WHERE org_id = ${orgId}`);
         int assetRequestsCount = assetRequestsResult.assetrequests_count;
 
-        record {|int maintenance_count;|} maintenanceResult = check database:dbClient->queryRow(`SELECT COUNT(maintenance_id) AS maintenance_count FROM maintenance`);
+        record {|int maintenance_count;|} maintenanceResult = check database:dbClient->queryRow(`SELECT COUNT(maintenance_id) AS maintenance_count FROM maintenance WHERE org_id = ${orgId}`);
         int maintenanceCount = maintenanceResult.maintenance_count;
 
         // Query to get user count by month
         stream<MonthlyUserData, sql:Error?> monthlyUserStream = database:dbClient->query(
         `SELECT EXTRACT(MONTH FROM created_at) AS month, COUNT(user_id) AS count 
          FROM users 
+         WHERE org_id = ${orgId}
          GROUP BY EXTRACT(MONTH FROM created_at) 
          ORDER BY month`,
         MonthlyUserData
@@ -59,6 +63,7 @@ service /dashboard/admin on database:dashboardListener {
         stream<MonthlyMealData, sql:Error?> monthlyMealStream = database:dbClient->query(
         `SELECT EXTRACT(MONTH FROM meal_request_date) AS month, COUNT(requestedmeal_id) AS count 
          FROM requestedmeals 
+         WHERE org_id = ${orgId}
          GROUP BY EXTRACT(MONTH FROM meal_request_date) 
          ORDER BY month`,
         MonthlyMealData
@@ -81,6 +86,7 @@ service /dashboard/admin on database:dashboardListener {
         stream<MonthlyAssetRequestData, sql:Error?> monthlyAssetRequestStream = database:dbClient->query(
         `SELECT EXTRACT(MONTH FROM submitted_date) AS month, COUNT(requestedasset_id) AS count 
          FROM requestedassets
+         WHERE org_id = ${orgId}
          GROUP BY EXTRACT(MONTH FROM submitted_date) 
          ORDER BY month`,
         MonthlyAssetRequestData
@@ -103,6 +109,7 @@ service /dashboard/admin on database:dashboardListener {
         stream<MonthlyMaintenanceData, sql:Error?> monthlyMaintenanceStream = database:dbClient->query(
         `SELECT EXTRACT(MONTH FROM submitted_date) AS month, COUNT(maintenance_id) AS count 
          FROM maintenance 
+         WHERE org_id = ${orgId}
          GROUP BY EXTRACT(MONTH FROM submitted_date) 
          ORDER BY month`,
         MonthlyMaintenanceData
@@ -121,31 +128,37 @@ service /dashboard/admin on database:dashboardListener {
             monthlyMaintenanceCounts[row.month - 1] = row.count;
         }
 
-        // Construct the JSON response
+        // Month labels for charts
+        string[] monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        // Construct the JSON response with monthLabels
         return [
             {
                 "title": "Total Users",
                 "value": userCount,
                 "icon": "Users",
-                "monthlyData": monthlyUserCounts
+                "monthlyData": monthlyUserCounts,
+                "monthLabels": monthLabels
             },
             {
                 "title": "Meals Served",
                 "value": mealEventsCount,
                 "icon": "Utensils",
-                "monthlyData": monthlyMealCounts
+                "monthlyData": monthlyMealCounts,
+                "monthLabels": monthLabels
             },
             {
                 "title": "Resources",
                 "value": assetRequestsCount,
                 "icon": "Box",
-                "monthlyData": monthlyAssetRequestCounts
+                "monthlyData": monthlyAssetRequestCounts,
+                "monthLabels": monthLabels
             },
             {
                 "title": "Services",
                 "value": maintenanceCount,
                 "icon": "Wrench",
-                "monthlyData": monthlyMaintenanceCounts
+                "monthlyData": monthlyMaintenanceCounts,
+                "monthLabels": monthLabels
             }
         ];
     }
@@ -185,9 +198,12 @@ service /dashboard/admin on database:dashboardListener {
         if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         // Query to get all meal types from mealtimes
         stream<MealTime, sql:Error?> mealTimeStream = database:dbClient->query(
-        `SELECT mealtime_id, mealtime_name FROM mealtimes ORDER BY mealtime_id`,
+        `SELECT mealtime_id, mealtime_name FROM mealtimes WHERE org_id = ${orgId} ORDER BY mealtime_id`,
         MealTime
         );
 
@@ -203,6 +219,7 @@ service /dashboard/admin on database:dashboardListener {
         `SELECT DAYOFWEEK(meal_request_date) AS day_of_week, mealtimes.mealtime_name, COUNT(requestedmeal_id) AS count 
          FROM requestedmeals 
          JOIN mealtimes ON requestedmeals.meal_time_id = mealtimes.mealtime_id
+         WHERE requestedmeals.org_id = ${orgId}
          GROUP BY DAYOFWEEK(meal_request_date), mealtimes.mealtime_name
          ORDER BY day_of_week, mealtimes.mealtime_name`,
         MealDistributionData
@@ -267,12 +284,16 @@ service /dashboard/admin on database:dashboardListener {
         if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
+        
+        int orgId = check common:getOrgId(payload);
+        
         // Query to get total and allocated quantities by category
         stream<ResourceAllocationData, sql:Error?> allocationStream = database:dbClient->query(
         `SELECT 
             category,
             SUM(quantity) AS total
          FROM assets 
+         WHERE org_id = ${orgId}
          GROUP BY category 
          ORDER BY category`,
         ResourceAllocationData

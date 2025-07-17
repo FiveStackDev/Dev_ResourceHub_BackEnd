@@ -11,6 +11,7 @@ public type User record {|
     string password?;
     string bio;
     string created_at?;
+    int org_id?;
 |};
 
 // Profile data structure for user settings
