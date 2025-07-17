@@ -149,15 +149,15 @@ The ResourceHub Team`
         
                int orgId = check common:getOrgId(payload);
         
-        // Check if email already exists in the organization
+        // Check if email already exists in the organization (excluding current user)
         stream<record {| int count; |}, sql:Error?> emailCheckStream = 
-            database:dbClient->query(`SELECT COUNT(*) as count FROM users WHERE email = ${user.email}`);
-        
+            database:dbClient->query(`SELECT COUNT(*) as count FROM users WHERE email = ${user.email} AND user_id != ${userid}`);
+
         record {| int count; |}[] emailCheckResult = [];
         check emailCheckStream.forEach(function(record {| int count; |} result) {
             emailCheckResult.push(result);
         });
-        
+
         if (emailCheckResult.length() > 0 && emailCheckResult[0].count > 0) {
             return {
                 message: "Email already exists in a organization. Please use a different email address."
