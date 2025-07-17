@@ -178,7 +178,6 @@ Authorization: Bearer <your-jwt-token>
 - **👤 User** - Basic access to own data and resources
 - **🛡️ Admin** - Administrative access to most system functions
 - **🚀 SuperAdmin** - Full system access and configuration
-- **📋 Manager** - Enhanced user access with some admin capabilities
 
 ---
 
