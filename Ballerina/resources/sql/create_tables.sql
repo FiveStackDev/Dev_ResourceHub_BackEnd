@@ -1,5 +1,3 @@
-
-
 -- Organizations Table
 CREATE TABLE organizations (
     org_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -112,7 +110,7 @@ CREATE TABLE notification (
     is_read BOOLEAN DEFAULT FALSE,             -- unread tracker
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     org_id INT NOT NULL,                       -- which org this belongs to
-
+    priority VARCHAR(10) NOT NULL DEFAULT 'General',
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE
 );
@@ -127,8 +125,3 @@ CREATE TABLE schedulereports (
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE
 );
-
-
-drop table users
-select * from users
-select * from organizations
