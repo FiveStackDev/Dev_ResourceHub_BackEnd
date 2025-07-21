@@ -8,7 +8,3 @@ description = "A Ballerina package for managing resources in a hub."
 [build-options]
 observabilityIncluded = true
 
-[[dependencies]]
-org = "ballerina"
-name = "crypto"
-version = "2.9.0"
