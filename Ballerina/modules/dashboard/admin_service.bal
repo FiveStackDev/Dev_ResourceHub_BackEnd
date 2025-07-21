@@ -2,10 +2,271 @@ import ballerina/http;
 import ballerina/io;
 import ballerina/sql;
 import ballerina/jwt;
+import ballerina/websocket;
+import ballerina/time;
+import ballerina/task;
 import ResourceHub.database;
 import ResourceHub.common;
 
-// DashboardAdminService - RESTful service to provide data for admin dashboard
+// Global WebSocket connection storage
+map<ClientConnection> adminConnections = {};
+map<websocket:Caller> activeCalls = {};
+
+// Background task for real-time updates
+task:JobId? updateTaskId = ();
+
+// Utility function to broadcast message to all admin connections in an organization
+function broadcastToOrgAdmins(string orgId, WebSocketMessage message) {
+    foreach var [connectionId, connection] in adminConnections.entries() {
+        if (connection.orgId == orgId) {
+            websocket:Caller? caller = activeCalls[connectionId];
+            if (caller is websocket:Caller) {
+                var result = caller->writeMessage(message);
+                if (result is websocket:Error) {
+                    io:println("Error broadcasting to connection " + connectionId + ": " + result.message());
+                    // Remove failed connection
+                    _ = adminConnections.remove(connectionId);
+                    _ = activeCalls.remove(connectionId);
+                }
+            }
+        }
+    }
+}
+
+// Function to get real-time stats for an organization
+function getRealTimeStatsForOrg(string orgId) returns RealTimeStats|error {
+    int orgIdInt = check int:fromString(orgId);
+    
+    // Get current counts
+    record {|int user_count;|} userResult = check database:dbClient->queryRow(`SELECT COUNT(user_id) AS user_count FROM users WHERE org_id = ${orgIdInt}`);
+    int userCount = userResult.user_count;
+
+    record {|int mealevents_count;|} mealResult = check database:dbClient->queryRow(`SELECT COUNT(requestedmeal_id) AS mealevents_count FROM requestedmeals WHERE org_id = ${orgIdInt}`);
+    int mealEventsCount = mealResult.mealevents_count;
+
+    record {|int assetrequests_count;|} assetRequestsResult = check database:dbClient->queryRow(`SELECT COUNT(requestedasset_id) AS assetrequests_count FROM requestedassets WHERE org_id = ${orgIdInt}`);
+    int assetRequestsCount = assetRequestsResult.assetrequests_count;
+
+    record {|int maintenance_count;|} maintenanceResult = check database:dbClient->queryRow(`SELECT COUNT(maintenance_id) AS maintenance_count FROM maintenance WHERE org_id = ${orgIdInt}`);
+    int maintenanceCount = maintenanceResult.maintenance_count;
+
+    // Get monthly data (simplified for real-time updates)
+    string[] monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    int[] monthlyUserCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    int[] monthlyMealCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    int[] monthlyAssetRequestCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    int[] monthlyMaintenanceCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+    return {
+        userCount,
+        mealEventsCount,
+        assetRequestsCount,
+        maintenanceCount,
+        monthlyUserCounts,
+        monthlyMealCounts,
+        monthlyAssetRequestCounts,
+        monthlyMaintenanceCounts,
+        monthLabels
+    };
+}
+
+// Background task function to send periodic updates
+function sendPeriodicUpdates() returns error? {
+    foreach var [connectionId, connection] in adminConnections.entries() {
+        RealTimeStats|error stats = getRealTimeStatsForOrg(connection.orgId);
+        if (stats is RealTimeStats) {
+            WebSocketMessage message = {
+                event: "stats_update",
+                data: stats,
+                timestamp: time:utcNow()[0].toString()
+            };
+            
+            websocket:Caller? caller = activeCalls[connectionId];
+            if (caller is websocket:Caller) {
+                var result = caller->writeMessage(message);
+                if (result is websocket:Error) {
+                    io:println("Error sending periodic update to connection " + connectionId + ": " + result.message());
+                    // Remove failed connection
+                    _ = adminConnections.remove(connectionId);
+                    _ = activeCalls.remove(connectionId);
+                }
+            }
+        }
+    }
+}
+
+// WebSocket service for real-time admin dashboard
+@websocket:ServiceConfig {
+    subProtocols: ["admin-dashboard"],
+    idleTimeout: 300
+}
+service /dashboard/admin/ws on new websocket:Listener(9095) {
+    resource isolated function get .() returns websocket:Service|websocket:UpgradeError {
+        return new AdminWebSocketService();
+    }
+}
+
+// AdminWebSocketService class for handling WebSocket connections
+service class AdminWebSocketService {
+    *websocket:Service;
+    
+    remote function onOpen(websocket:Caller caller) returns websocket:Error? {
+        io:println("WebSocket connection opened");
+    }
+
+    remote function onMessage(websocket:Caller caller, json message) returns websocket:Error? {
+        json|error eventJson = message.event;
+        if (eventJson is error || !(eventJson is string)) {
+            json errorMessage = {
+                event: "error",
+                message: "Invalid message format - event field required",
+                timestamp: time:utcNow()[0].toString()
+            };
+            check caller->writeMessage(errorMessage);
+            return;
+        }
+        
+        string event = <string>eventJson;
+        
+        if (event == "authenticate") {
+            json|error tokenJson = message.token;
+            if (tokenJson is error || !(tokenJson is string)) {
+                json errorMessage = {
+                    event: "error",
+                    message: "Token not provided or invalid",
+                    timestamp: time:utcNow()[0].toString()
+                };
+                check caller->writeMessage(errorMessage);
+                return;
+            }
+            
+            string token = <string>tokenJson;
+            string|error authResult = authenticateWebSocketClient(caller, token);
+            if (authResult is error) {
+                json errorMessage = {
+                    event: "error",
+                    message: "Authentication failed: " + authResult.message(),
+                    timestamp: time:utcNow()[0].toString()
+                };
+                check caller->writeMessage(errorMessage);
+                check caller->close();
+            } else {
+                json successMessage = {
+                    event: "authenticated",
+                    message: "Successfully authenticated",
+                    timestamp: time:utcNow()[0].toString()
+                };
+                check caller->writeMessage(successMessage);
+                
+                // Send initial stats
+                RealTimeStats|error stats = getRealTimeStatsForOrg(authResult);
+                if (stats is RealTimeStats) {
+                    json statsMessage = {
+                        event: "initial_stats",
+                        data: stats,
+                        timestamp: time:utcNow()[0].toString()
+                    };
+                    check caller->writeMessage(statsMessage);
+                }
+            }
+        } else if (event == "ping") {
+            json pongMessage = {
+                event: "pong",
+                timestamp: time:utcNow()[0].toString()
+            };
+            check caller->writeMessage(pongMessage);
+        }
+    }
+
+    remote function onClose(websocket:Caller caller, int statusCode, string reason) returns websocket:Error? {
+        io:println("WebSocket connection closed: " + reason);
+        removeClientConnection(caller);
+    }
+
+    remote function onError(websocket:Caller caller, websocket:Error err) returns websocket:Error? {
+        io:println("WebSocket error: " + err.message());
+        removeClientConnection(caller);
+    }
+}
+
+// Function to authenticate WebSocket client
+function authenticateWebSocketClient(websocket:Caller caller, string token) returns string|error {
+    jwt:Payload payload = check common:getValidatedPayload(createDummyRequest(token));
+    
+    // Validate user has admin role
+    if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
+        return error("Forbidden: You do not have permission to access this resource");
+    }
+    
+    int orgIdInt = check common:getOrgId(payload);
+    int userIdInt = check common:getUserId(payload);
+    string orgId = orgIdInt.toString();
+    string userId = userIdInt.toString();
+    
+    // Get role from payload
+    anydata roleClaim = payload["role"];
+    string[] roles = [];
+    if (roleClaim is string) {
+        roles.push(roleClaim);
+    }
+    
+    // Generate connection ID
+    string connectionId = userId + "_" + time:utcNow()[0].toString();
+    
+    // Store connection
+    ClientConnection connection = {
+        connectionId: connectionId,
+        orgId: orgId,
+        userId: userId,
+        roles: roles
+    };
+    
+    lock {
+        adminConnections[connectionId] = connection;
+        activeCalls[connectionId] = caller;
+    }
+    
+    return orgId;
+}
+
+// Helper function to create a dummy request with Authorization header
+function createDummyRequest(string token) returns http:Request {
+    http:Request req = new;
+    req.setHeader("Authorization", "Bearer " + token);
+    return req;
+}
+
+// Function to remove client connection
+function removeClientConnection(websocket:Caller caller) {
+    lock {
+        string? connectionToRemove = ();
+        foreach var [connectionId, activeCaller] in activeCalls.entries() {
+            if (activeCaller === caller) {
+                connectionToRemove = connectionId;
+                break;
+            }
+        }
+        
+        if (connectionToRemove is string) {
+            _ = adminConnections.remove(connectionToRemove);
+            _ = activeCalls.remove(connectionToRemove);
+            io:println("Removed connection: " + connectionToRemove);
+        }
+    }
+}
+
+// Function to send notification to specific organization admins
+public function sendNotificationToOrgAdmins(RealTimeNotification notification) {
+    WebSocketMessage message = {
+        event: "notification",
+        data: notification,
+        timestamp: time:utcNow()[0].toString()
+    };
+    
+    broadcastToOrgAdmins(notification.orgId, message);
+}
+
+// DashboardAdminService - RESTful service to provide data for admin dashboard with real-time WebSocket support
 @http:ServiceConfig {
     cors: {
         allowOrigins: ["http://localhost:5173", "*"],
@@ -319,12 +580,136 @@ service /dashboard/admin on database:dashboardListener {
         return result;
     }
 
+    // New endpoint to trigger real-time updates to all connected clients
+    resource function post notify(http:Request req) returns json|error {
+        jwt:Payload payload = check common:getValidatedPayload(req);
+        if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
+            return error("Forbidden: You do not have permission to access this resource");
+        }
+        
+        int orgId = check common:getOrgId(payload);
+        string orgIdStr = orgId.toString();
+        
+        // Get current stats and broadcast to all connected clients
+        RealTimeStats|error stats = getRealTimeStatsForOrg(orgIdStr);
+        if (stats is RealTimeStats) {
+            WebSocketMessage message = {
+                event: "stats_update",
+                data: stats,
+                timestamp: time:utcNow()[0].toString()
+            };
+            broadcastToOrgAdmins(orgIdStr, message);
+        }
+        
+        return {"message": "Real-time update sent", "status": "success"};
+    }
+
+    // New endpoint to send custom notifications
+    resource function post notification(http:Request req) returns json|error {
+        jwt:Payload payload = check common:getValidatedPayload(req);
+        if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
+            return error("Forbidden: You do not have permission to access this resource");
+        }
+        
+        json requestBody = check req.getJsonPayload();
+        string notificationType = check requestBody.'type;
+        string title = check requestBody.title;
+        string message = check requestBody.message;
+        
+        int orgId = check common:getOrgId(payload);
+        string orgIdStr = orgId.toString();
+        
+        RealTimeNotification notification = {
+            'type: notificationType,
+            title: title,
+            message: message,
+            orgId: orgIdStr
+        };
+        
+        sendNotificationToOrgAdmins(notification);
+        
+        return {"message": "Notification sent", "status": "success"};
+    }
+
+    // New endpoint to get WebSocket connection info
+    resource function get connections(http:Request req) returns json|error {
+        jwt:Payload payload = check common:getValidatedPayload(req);
+        if (!common:hasAnyRole(payload, ["SuperAdmin"])) {
+            return error("Forbidden: You do not have permission to access this resource");
+        }
+        
+        int orgId = check common:getOrgId(payload);
+        string orgIdStr = orgId.toString();
+        
+        json[] connections = [];
+        foreach var [connectionId, connection] in adminConnections.entries() {
+            if (connection.orgId == orgIdStr) {
+                connections.push({
+                    connectionId: connection.connectionId,
+                    userId: connection.userId,
+                    roles: connection.roles,
+                    connected: activeCalls.hasKey(connectionId)
+                });
+            }
+        }
+        
+        return {
+            "totalConnections": connections.length(),
+            "connections": connections
+        };
+    }
+
     resource function options .() returns http:Ok {
         return http:OK;
     }
 }
 
+// Job class for periodic updates
+class PeriodicUpdateJob {
+    *task:Job;
+    
+    public function execute() {
+        error? result = sendPeriodicUpdates();
+        if (result is error) {
+            io:println("Error in periodic update: " + result.message());
+        }
+    }
+}
+
 public function startDashboardAdminService() returns error? {
+    // Start periodic update task (every 30 seconds)
+    task:JobId|error jobResult = task:scheduleJobRecurByFrequency(new PeriodicUpdateJob(), 30);
+    if (jobResult is error) {
+        io:println("Failed to schedule periodic updates: " + jobResult.message());
+    } else {
+        updateTaskId = jobResult;
+        io:println("Real-time updates scheduled every 30 seconds");
+    }
+    
     // Function to integrate with the service start pattern
     io:println("Dashboard Admin service started on port 9092");
+    io:println("WebSocket service started on port 9095");
+}
+
+// Function to stop the dashboard service and cleanup
+public function stopDashboardAdminService() returns error? {
+    task:JobId? taskId = updateTaskId;
+    if (taskId is task:JobId) {
+        check task:unscheduleJob(taskId);
+        io:println("Real-time update task stopped");
+    }
+    
+    // Close all WebSocket connections
+    foreach var [connectionId, caller] in activeCalls.entries() {
+        var result = caller->close();
+        if (result is websocket:Error) {
+            io:println("Error closing connection " + connectionId + ": " + result.message());
+        }
+    }
+    
+    // Clear connection maps
+    adminConnections.removeAll();
+    activeCalls.removeAll();
+    
+    io:println("Dashboard Admin service stopped");
 }

@@ -12,3 +12,8 @@ observabilityIncluded = true
 org = "ballerina"
 name = "crypto"
 version = "1.0.0"
+
+[[dependencies]]
+org = "ballerina"
+name = "websocket"
+version = "1.0.0"

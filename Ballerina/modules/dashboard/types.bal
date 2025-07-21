@@ -44,3 +44,41 @@ public type ResourceAllocationData record {|
     decimal allocated;
     decimal total;
 |};
+
+// WebSocket message types for real-time dashboard
+public type WebSocketMessage record {|
+    string event;
+    json data;
+    string timestamp;
+|};
+
+// Real-time stats update type
+public type RealTimeStats record {|
+    int userCount;
+    int mealEventsCount;
+    int assetRequestsCount;
+    int maintenanceCount;
+    int[] monthlyUserCounts;
+    int[] monthlyMealCounts;
+    int[] monthlyAssetRequestCounts;
+    int[] monthlyMaintenanceCounts;
+    string[] monthLabels;
+|};
+
+// Connection info for WebSocket clients
+public type ClientConnection record {|
+    string connectionId;
+    string orgId;
+    string userId;
+    string[] roles;
+|};
+
+// Real-time notification type
+public type RealTimeNotification record {|
+    string 'type;
+    string title;
+    string message;
+    string orgId;
+    string? userId?;
+    json? metadata?;
+|};

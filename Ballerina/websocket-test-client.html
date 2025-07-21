@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time Admin Dashboard Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+        .error { background-color: #fff3cd; color: #856404; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        input {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin: 5px;
+            width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Real-time Admin Dashboard Test</h1>
+        
+        <div id="connectionStatus" class="status disconnected">
+            Disconnected
+        </div>
+
+        <div>
+            <h3>Connection Settings</h3>
+            <input type="text" id="wsUrl" placeholder="WebSocket URL" value="ws://localhost:9095/dashboard/admin/ws">
+            <input type="text" id="authToken" placeholder="JWT Authentication Token">
+            <br>
+            <button onclick="connect()" id="connectBtn">Connect</button>
+            <button onclick="disconnect()" id="disconnectBtn" disabled>Disconnect</button>
+            <button onclick="sendPing()" id="pingBtn" disabled>Send Ping</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h3>Real-time Statistics</h3>
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-value" id="userCount">-</div>
+                <div class="stat-label">Total Users</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="mealCount">-</div>
+                <div class="stat-label">Meals Served</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="assetCount">-</div>
+                <div class="stat-label">Asset Requests</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="maintenanceCount">-</div>
+                <div class="stat-label">Maintenance Requests</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h3>Test Actions</h3>
+        <button onclick="triggerStatsUpdate()">Trigger Stats Update</button>
+        <button onclick="sendTestNotification()">Send Test Notification</button>
+        <button onclick="getConnections()">Get Connections</button>
+    </div>
+
+    <div class="container">
+        <h3>Message Log</h3>
+        <div id="messageLog" class="log"></div>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <script>
+        let ws = null;
+        let isConnected = false;
+
+        function log(message) {
+            const logElement = document.getElementById('messageLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.innerHTML += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function updateConnectionStatus(status, className) {
+            const statusElement = document.getElementById('connectionStatus');
+            statusElement.textContent = status;
+            statusElement.className = `status ${className}`;
+        }
+
+        function updateButtons() {
+            document.getElementById('connectBtn').disabled = isConnected;
+            document.getElementById('disconnectBtn').disabled = !isConnected;
+            document.getElementById('pingBtn').disabled = !isConnected;
+        }
+
+        function updateStats(stats) {
+            document.getElementById('userCount').textContent = stats.userCount || 0;
+            document.getElementById('mealCount').textContent = stats.mealEventsCount || 0;
+            document.getElementById('assetCount').textContent = stats.assetRequestsCount || 0;
+            document.getElementById('maintenanceCount').textContent = stats.maintenanceCount || 0;
+        }
+
+        function connect() {
+            const wsUrl = document.getElementById('wsUrl').value;
+            const token = document.getElementById('authToken').value;
+
+            if (!wsUrl) {
+                log('ERROR: WebSocket URL is required');
+                return;
+            }
+
+            try {
+                ws = new WebSocket(wsUrl, ['admin-dashboard']);
+                
+                ws.onopen = function(event) {
+                    log('WebSocket connection opened');
+                    updateConnectionStatus('Connected', 'connected');
+                    isConnected = true;
+                    updateButtons();
+
+                    // Send authentication message if token is provided
+                    if (token) {
+                        const authMessage = {
+                            event: 'authenticate',
+                            token: token
+                        };
+                        ws.send(JSON.stringify(authMessage));
+                        log('Authentication message sent');
+                    }
+                };
+
+                ws.onmessage = function(event) {
+                    try {
+                        const message = JSON.parse(event.data);
+                        log(`RECEIVED: ${JSON.stringify(message, null, 2)}`);
+
+                        switch(message.event) {
+                            case 'authenticated':
+                                log('Successfully authenticated');
+                                break;
+                            case 'initial_stats':
+                            case 'stats_update':
+                                updateStats(message.data);
+                                log('Stats updated');
+                                break;
+                            case 'notification':
+                                log(`NOTIFICATION: ${message.data.title} - ${message.data.message}`);
+                                break;
+                            case 'pong':
+                                log('Pong received');
+                                break;
+                            case 'error':
+                                log(`ERROR: ${message.message}`);
+                                updateConnectionStatus('Error: ' + message.message, 'error');
+                                break;
+                        }
+                    } catch (e) {
+                        log(`ERROR parsing message: ${e.message}`);
+                        log(`Raw message: ${event.data}`);
+                    }
+                };
+
+                ws.onclose = function(event) {
+                    log(`WebSocket connection closed: ${event.code} - ${event.reason}`);
+                    updateConnectionStatus('Disconnected', 'disconnected');
+                    isConnected = false;
+                    updateButtons();
+                };
+
+                ws.onerror = function(error) {
+                    log(`WebSocket error: ${error}`);
+                    updateConnectionStatus('Connection Error', 'error');
+                };
+
+            } catch (e) {
+                log(`ERROR creating WebSocket: ${e.message}`);
+                updateConnectionStatus('Connection Failed', 'error');
+            }
+        }
+
+        function disconnect() {
+            if (ws && isConnected) {
+                ws.close();
+                log('Disconnecting...');
+            }
+        }
+
+        function sendPing() {
+            if (ws && isConnected) {
+                const pingMessage = {
+                    event: 'ping'
+                };
+                ws.send(JSON.stringify(pingMessage));
+                log('Ping sent');
+            }
+        }
+
+        function triggerStatsUpdate() {
+            const token = document.getElementById('authToken').value;
+            if (!token) {
+                log('ERROR: Authentication token required for API calls');
+                return;
+            }
+
+            fetch('http://localhost:9092/dashboard/admin/notify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                log(`Stats update triggered: ${JSON.stringify(data)}`);
+            })
+            .catch(error => {
+                log(`ERROR triggering stats update: ${error.message}`);
+            });
+        }
+
+        function sendTestNotification() {
+            const token = document.getElementById('authToken').value;
+            if (!token) {
+                log('ERROR: Authentication token required for API calls');
+                return;
+            }
+
+            const notification = {
+                type: 'info',
+                title: 'Test Notification',
+                message: 'This is a test notification from the admin dashboard.'
+            };
+
+            fetch('http://localhost:9092/dashboard/admin/notification', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(notification)
+            })
+            .then(response => response.json())
+            .then(data => {
+                log(`Test notification sent: ${JSON.stringify(data)}`);
+            })
+            .catch(error => {
+                log(`ERROR sending notification: ${error.message}`);
+            });
+        }
+
+        function getConnections() {
+            const token = document.getElementById('authToken').value;
+            if (!token) {
+                log('ERROR: Authentication token required for API calls');
+                return;
+            }
+
+            fetch('http://localhost:9092/dashboard/admin/connections', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                log(`Active connections: ${JSON.stringify(data, null, 2)}`);
+            })
+            .catch(error => {
+                log(`ERROR getting connections: ${error.message}`);
+            });
+        }
+
+        function clearLog() {
+            document.getElementById('messageLog').innerHTML = '';
+        }
+
+        // Initialize
+        updateButtons();
+        log('Real-time Admin Dashboard Test Client Ready');
+        log('Enter your JWT token and click Connect to start');
+    </script>
+</body>
+</html>
