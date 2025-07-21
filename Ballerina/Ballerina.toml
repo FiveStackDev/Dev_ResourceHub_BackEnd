@@ -11,4 +11,4 @@ observabilityIncluded = true
 [[dependencies]]
 org = "ballerina"
 name = "crypto"
-version = "1.0.0"
+version = "2.9.0"
