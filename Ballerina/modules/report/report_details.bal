@@ -189,7 +189,7 @@ service /schedulereports on database:reportListener {
                 m.user_id,
                 m.name,
                 m.description,
-                m.priorityLevel,
+                m.priority_level as priorityLevel,
                 m.status,
                 m.submitted_date,
                 u.profile_picture_url as profilePicture,
@@ -213,7 +213,7 @@ service /schedulereports on database:reportListener {
                 m.user_id,
                 m.name,
                 m.description,
-                m.priorityLevel,
+                m.priority_level as priorityLevel,
                 m.status,
                 m.submitted_date,
                 u.profile_picture_url as profilePicture,
@@ -237,7 +237,7 @@ service /schedulereports on database:reportListener {
                 m.user_id,
                 m.name,
                 m.description,
-                m.priorityLevel,
+                m.priority_level as priorityLevel,
                 m.status,
                 m.submitted_date,
                 u.profile_picture_url as profilePicture,
@@ -256,5 +256,5 @@ service /schedulereports on database:reportListener {
 }
 
 public function startReportDetailsService() returns error? {
-    io:println("Report details service started on port 9090");
+    io:println("Report details service started on port 9091");
 }

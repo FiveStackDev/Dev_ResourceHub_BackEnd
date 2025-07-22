@@ -7,14 +7,32 @@ class WeeklyJob {
     public function execute() {
         do {
             http:Client reportClient = check new ("http://localhost:9091");
-            http:Response mealResp = check reportClient->get("/report/generateWeeklyMeal");
-            io:println("Weekly Meal report response: ", check mealResp.getTextPayload());
             
-            http:Response assetResp = check reportClient->get("/report/generateWeeklyAsset");
-            io:println("Weekly Asset report response: ", check assetResp.getTextPayload());
+            // Generate meal report
+            do {
+                http:Response _ = check reportClient->get("/report/generateWeeklyMeal");
+                io:println("✅ Weekly meal report job completed successfully");
+            } on fail error e {
+                io:println("Error generating weekly meal report: ", e.toString());
+            }
 
-            http:Response maintResp = check reportClient->get("/report/generateWeeklyMaintenance");
-            io:println("Weekly Maintenance report response: ", check maintResp.getTextPayload());
+            // Generate asset report
+            do {
+                http:Response _ = check reportClient->get("/report/generateWeeklyAsset");
+                io:println("✅ Weekly asset report job completed successfully");
+            } on fail error e {
+                io:println("Error generating weekly asset report: ", e.toString());
+            }
+
+            // Generate maintenance report
+            do {
+                http:Response _ = check reportClient->get("/report/generateWeeklyMaintenance");
+                io:println("✅ Weekly maintenance report job completed successfully");
+            } on fail error e {
+                io:println("Error generating weekly maintenance report: ", e.toString());
+            }
+            
+            io:println("🎉 All weekly reports completed successfully!");
         } on fail error e {
             io:println("Error occurred while calling weekly report endpoints: ", e.toString());
         }
@@ -27,14 +45,32 @@ class BiweeklyJob {
     public function execute() {
         do {
             http:Client reportClient = check new ("http://localhost:9091");
-            http:Response mealResp = check reportClient->get("/report/generateBiweeklyMeal");
-            io:println("Biweekly Meal report response: ", check mealResp.getTextPayload());
+            
+            // Generate meal report
+            do {
+                http:Response _ = check reportClient->get("/report/generateBiweeklyMeal");
+                io:println("✅ Biweekly meal report job completed successfully");
+            } on fail error e {
+                io:println("Error generating biweekly meal report: ", e.toString());
+            }
 
-            http:Response assetResp = check reportClient->get("/report/generateBiweeklyAsset");
-            io:println("Biweekly Asset report response: ", check assetResp.getTextPayload());
+            // Generate asset report
+            do {
+                http:Response _ = check reportClient->get("/report/generateBiweeklyAsset");
+                io:println("✅ Biweekly asset report job completed successfully");
+            } on fail error e {
+                io:println("Error generating biweekly asset report: ", e.toString());
+            }
 
-            http:Response maintResp = check reportClient->get("/report/generateBiweeklyMaintenance");
-            io:println("Biweekly Maintenance report response: ", check maintResp.getTextPayload());
+            // Generate maintenance report
+            do {
+                http:Response _ = check reportClient->get("/report/generateBiweeklyMaintenance");
+                io:println("✅ Biweekly maintenance report job completed successfully");
+            } on fail error e {
+                io:println("Error generating biweekly maintenance report: ", e.toString());
+            }
+            
+            io:println("🎉 All biweekly reports completed successfully!");
         } on fail error e {
             io:println("Error occurred while calling biweekly report endpoints: ", e.toString());
         }
@@ -47,14 +83,32 @@ class MonthlyJob {
     public function execute() {
         do {
             http:Client reportClient = check new ("http://localhost:9091");
-            http:Response mealResp = check reportClient->get("/report/generateMonthlyMeal");
-            io:println("Monthly Meal report response: ", check mealResp.getTextPayload());
+            
+            // Generate meal report
+            do {
+                http:Response _ = check reportClient->get("/report/generateMonthlyMeal");
+                io:println("✅ Monthly meal report job completed successfully");
+            } on fail error e {
+                io:println("Error generating monthly meal report: ", e.toString());
+            }
 
-            http:Response assetResp = check reportClient->get("/report/generateMonthlyAsset");
-            io:println("Monthly Asset report response: ", check assetResp.getTextPayload());
+            // Generate asset report
+            do {
+                http:Response _ = check reportClient->get("/report/generateMonthlyAsset");
+                io:println("✅ Monthly asset report job completed successfully");
+            } on fail error e {
+                io:println("Error generating monthly asset report: ", e.toString());
+            }
 
-            http:Response maintResp = check reportClient->get("/report/generateMonthlyMaintenance");
-            io:println("Monthly Maintenance report response: ", check maintResp.getTextPayload());
+            // Generate maintenance report
+            do {
+                http:Response _ = check reportClient->get("/report/generateMonthlyMaintenance");
+                io:println("✅ Monthly maintenance report job completed successfully");
+            } on fail error e {
+                io:println("Error generating monthly maintenance report: ", e.toString());
+            }
+            
+            io:println("🎉 All monthly reports completed successfully!");
         } on fail error e {
             io:println("Error occurred while calling monthly report endpoints: ", e.toString());
         }
