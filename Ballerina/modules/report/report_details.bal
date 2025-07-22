@@ -19,7 +19,7 @@ import ballerina/io;
 service /schedulereports on database:mainListener{
     resource function post addscedulereport(http:Request req,@http:Payload ScheduleReport schedulereport) returns json | error{
         jwt:Payload payload = check common:getValidatedPayload(req);
-        if (!common:hasAnyRole(payload, ["Admin"])) {
+        if (!common:hasAnyRole(payload, ["Admin","SuperAdmin"])) {
             return error("Forbidden: You do not have permission to add schedule reports");
         }
         

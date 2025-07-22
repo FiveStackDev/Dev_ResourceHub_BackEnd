@@ -15,7 +15,7 @@ service /report on database:reportListener {
     }
     
     resource function get generateBiweeklyMeal() returns error? {
-        check generateAndSendReport("/schedulereports/biweeklymealdetails", "Biweekly Meal Events Report", "Biweekly_Meal_Events_Report.pdf", "meal", "biweekly");
+        check generateAndSendReport("/schedulereports/biweeklymealdetails", "Biweekly Meal Events Report", "Biweekly_Meal_Events_Report.pdf", "meal", "Bi-Weekly");
     }
     
     resource function get generateMonthlyMeal() returns error? {
@@ -28,7 +28,7 @@ service /report on database:reportListener {
     }
     
     resource function get generateBiweeklyAsset() returns error? {
-        check generateAndSendReport("/schedulereports/biweeklyassetrequestdetails", "Biweekly Assets Report", "Biweekly_Assets_Report.pdf", "asset", "biweekly");
+        check generateAndSendReport("/schedulereports/biweeklyassetrequestdetails", "Biweekly Assets Report", "Biweekly_Assets_Report.pdf", "asset", "Bi-Weekly");
     }
     
     resource function get generateMonthlyAsset() returns error? {
@@ -41,7 +41,7 @@ service /report on database:reportListener {
     }
     
     resource function get generateBiweeklyMaintenance() returns error? {
-        check generateAndSendReport("/schedulereports/biweeklymaintenancedetails", "Biweekly Maintenances Report", "Biweekly_Maintenances_Report.pdf", "maintenance", "biweekly");
+        check generateAndSendReport("/schedulereports/biweeklymaintenancedetails", "Biweekly Maintenances Report", "Biweekly_Maintenances_Report.pdf", "maintenance", "Bi-Weekly");
     }
     
     resource function get generateMonthlyMaintenance() returns error? {
