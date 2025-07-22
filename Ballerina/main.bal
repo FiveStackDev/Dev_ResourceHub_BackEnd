@@ -26,5 +26,5 @@ public function main() returns error? {
     check dashboard:startDashboardUserService();
     check organizations:startOrganizationSettingsService();
     check report:startReportDetailsService();
-    check report:scheduled();
+    // check report:scheduled();
 }
