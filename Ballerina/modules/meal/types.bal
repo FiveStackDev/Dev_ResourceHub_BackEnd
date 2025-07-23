@@ -6,6 +6,7 @@ public type MealType record {|
     string mealtype_name;
     string mealtype_image_url;
     int org_id?;
+    int[] mealtime_ids?;
 |};
 
 // Meal time record representing different meal times
@@ -14,6 +15,7 @@ public type MealTime record {|
     string mealtime_name;
     string mealtime_image_url;
     int org_id?;
+    int[] mealtype_ids?;
 |};
 
 // Meal event record representing meal calendar events
