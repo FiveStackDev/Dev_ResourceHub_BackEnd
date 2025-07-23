@@ -102,7 +102,7 @@ service /assetrequest on database:mainListener {
         sql:ExecutionResult result = check database:dbClient->execute(`
             INSERT INTO requestedassets (user_id, asset_id, submitted_date, handover_date, quantity, status, is_returning, org_id)
             VALUES (${assetrequest.user_id}, ${assetrequest.asset_id}, ${assetrequest.submitted_date}, 
-                    ${assetrequest.handover_date}, ${assetrequest.quantity}, 'pending', false, ${orgId})
+                    ${assetrequest.handover_date}, ${assetrequest.quantity}, 'Pending', false, ${orgId})
         `);
 
         if result.affectedRowCount == 0 {
@@ -131,7 +131,7 @@ service /assetrequest on database:mainListener {
 
     resource function put details/[int id](http:Request req, @http:Payload AssetRequest assetrequest) returns json|error {
         jwt:Payload payload = check common:getValidatedPayload(req);
-        if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
+        if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin", "User"])) {
             return error("Forbidden: You do not have permission to update asset requests");
         }
 
@@ -139,7 +139,7 @@ service /assetrequest on database:mainListener {
 
         sql:ExecutionResult result = check database:dbClient->execute(`
             UPDATE requestedassets 
-            SET status = ${assetrequest.status ?: "pending"}, 
+            SET status = ${assetrequest.status ?: "Pending"}, 
             is_returning = ${assetrequest.is_returning ?: false},
             quantity = ${assetrequest.quantity},
             handover_date = ${assetrequest.handover_date}
