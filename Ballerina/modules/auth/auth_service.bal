@@ -5,6 +5,7 @@ import ballerina/jwt;
 import ballerina/sql;
 import ResourceHub.database;
 import ResourceHub.common;
+import ResourceHub.user;
 
 // JWT configuration is now in jwt_utils.bal to avoid duplication
 
@@ -128,6 +129,20 @@ service /auth on database:authListener {
             return error("Invalid email format", statusCode = 400);
         }
 
+        // First check if the user exists in the database
+        sql:ParameterizedQuery checkUserQuery = `SELECT user_id, email FROM users WHERE email = ${password.email}`;
+        stream<record {|int user_id; string email;|}, sql:Error?> userStream = database:dbClient->query(checkUserQuery);
+        
+        record {|int user_id; string email;|}? userRecord = ();
+        check userStream.forEach(function(record {|int user_id; string email;|} user) {
+            userRecord = user;
+        });
+
+        // If user doesn't exist, return error
+        if userRecord is () {
+            return error("No account found with this email address. Please check your email or register for a new account.", statusCode = 404);
+        }
+
         // Generate simple random password
         string randomPassword = check common:generateSimplePassword(8);
 
@@ -138,7 +153,7 @@ service /auth on database:authListener {
             return error("Failed to hash password", statusCode = 500);
         }
 
-        // Update password in database with hashed password
+        // Update password in database with hashed password for the existing user
         sql:ParameterizedQuery updateQuery = `UPDATE users SET password = ${hashedPassword} WHERE email = ${password.email}`;
         sql:ExecutionResult updateResult = check database:dbClient->execute(updateQuery);
 
@@ -146,7 +161,7 @@ service /auth on database:authListener {
             return error("Failed to reset password", statusCode = 500);
         }
 
-        // Send email with new password
+        // Send email with new password only after confirming user exists and password is updated
         email:Message resetEmail = {
             to: [password.email],
             subject: "Password Reset - ResourceHub Account",
@@ -182,11 +197,70 @@ Your Digital Resource Management Solution`
         error? emailResult = common:emailClient->sendMessage(resetEmail);
         if emailResult is error {
             io:println("Error sending password email: ", emailResult.message());
-            // Don't fail the request if email fails, but log it
+            return error("Password was reset but failed to send email notification. Please contact support.", statusCode = 500);
         }
 
         return {
             message: "Password reset successful. Check your email for the temporary password."
+        };
+    }
+
+    // Send verification code for forgot password - checks if user exists first
+    resource function post sendForgotPasswordCode(@http:Payload user:Email email) returns json|error {
+        // Validate email format (basic check)
+        if !email.email.includes("@") || !email.email.includes(".") {
+            return error("Invalid email format", statusCode = 400);
+        }
+
+        // Check if the user exists in the database
+        sql:ParameterizedQuery checkUserQuery = `SELECT user_id, email FROM users WHERE email = ${email.email}`;
+        stream<record {|int user_id; string email;|}, sql:Error?> userStream = database:dbClient->query(checkUserQuery);
+        
+        record {|int user_id; string email;|}? userRecord = ();
+        check userStream.forEach(function(record {|int user_id; string email;|} user) {
+            userRecord = user;
+        });
+
+        // If user doesn't exist, return error
+        if userRecord is () {
+            return error("No account found with this email address. Please check your email or register for a new account.", statusCode = 404);
+        }
+
+        // User exists, send verification code
+        email:Message verificationEmail = {
+            to: [email.email],
+            subject: "Password Reset Verification Code - ResourceHub",
+            body: string `Hello,
+
+We received a request to reset the password for your ResourceHub account. To proceed with the password reset, please verify your identity by entering the verification code below.
+
+VERIFICATION CODE: ${email.code ?: "ERROR - Contact Support"}
+
+INSTRUCTIONS:
+1. Enter this verification code in the password reset form within the next few minutes
+2. This code is valid for a limited time for security purposes
+3. After verification, you will receive a new temporary password via email
+
+SECURITY NOTE:
+If you did not request this password reset, you can safely ignore this email. No changes will be made to your account, and your information remains secure.
+
+NEED ASSISTANCE?
+Our support team is ready to help if you encounter any issues. Contact us at resourcehub.contact.info@gmail.com with any questions or concerns.
+
+Thank you for choosing ResourceHub. We appreciate your trust in our platform and are committed to providing you with excellent service.
+
+Best regards,
+The ResourceHub Team
+Your Digital Resource Management Solution`
+        };
+
+        error? emailResult = common:emailClient->sendMessage(verificationEmail);
+        if emailResult is error {
+            return error("Failed to send verification code. Please try again later.", statusCode = 500);
+        }
+
+        return {
+            message: "Verification code sent successfully. Check your email for the code."
         };
     }
 }
