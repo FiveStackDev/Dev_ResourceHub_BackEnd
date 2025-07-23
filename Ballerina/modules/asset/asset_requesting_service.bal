@@ -137,9 +137,98 @@ service /assetrequest on database:mainListener {
 
         int orgId = check common:getOrgId(payload);
 
+        // Get current request details to check if status is changing to "Accepted"
+        stream<record {|int asset_id; string status; int quantity;|}, sql:Error?> currentRequestStream = 
+            database:dbClient->query(`
+                SELECT asset_id, status, quantity 
+                FROM requestedassets 
+                WHERE requestedasset_id = ${id} AND org_id = ${orgId}
+            `);
+        
+        record {|int asset_id; string status; int quantity;|}? currentRequest = ();
+        check currentRequestStream.forEach(function(record {|int asset_id; string status; int quantity;|} requestData) {
+            currentRequest = requestData;
+        });
+
+        if currentRequest is () {
+            return {message: "Asset request not found or you don't have permission to update it"};
+        }
+
+        record {|int asset_id; string status; int quantity;|} currentReq = <record {|int asset_id; string status; int quantity;|}>currentRequest;
+
+        // Check if status is changing from non-Accepted to Accepted or from Accepted to non-Accepted
+        string newStatus = assetrequest.status ?: "Pending";
+        boolean isApproving = currentReq.status != "Accepted" && newStatus == "Accepted";
+        boolean isReturning = currentReq.status == "Accepted" && newStatus != "Accepted";
+
+        // If approving, check and reduce asset quantity
+        if isApproving {
+            // Check current available quantity in assets table
+            stream<record {|int quantity;|}, sql:Error?> assetQuantityStream = 
+                database:dbClient->query(`
+                    SELECT quantity 
+                    FROM assets 
+                    WHERE asset_id = ${currentReq.asset_id} AND org_id = ${orgId}
+                `);
+            
+            record {|int quantity;|}? assetQuantity = ();
+            check assetQuantityStream.forEach(function(record {|int quantity;|} asset) {
+                assetQuantity = asset;
+            });
+
+            if assetQuantity is () {
+                return error("Asset not found");
+            }
+
+            record {|int quantity;|} assetQty = <record {|int quantity;|}>assetQuantity;
+
+            // Check if there's enough quantity
+            if assetQty.quantity < currentReq.quantity {
+                return error("Not enough quantity available. Available: " + assetQty.quantity.toString() + ", Requested: " + currentReq.quantity.toString() + ". Error Code: INSUFFICIENT_QUANTITY_3819");
+            }
+
+            // Try to reduce the asset quantity
+            do {
+                sql:ExecutionResult quantityResult = check database:dbClient->execute(`
+                    UPDATE assets 
+                    SET quantity = quantity - ${currentReq.quantity}
+                    WHERE asset_id = ${currentReq.asset_id} AND org_id = ${orgId}
+                `);
+
+                if quantityResult.affectedRowCount == 0 {
+                    return error("Failed to update asset quantity");
+                }
+            } on fail var e {
+                // Handle constraint violation or other database errors
+                string errorMessage = e.message();
+                if errorMessage.includes("chk_quantity_nonnegative") || errorMessage.includes("3819") {
+                    return error("Not enough quantity available. Database constraint violated. Error Code: CONSTRAINT_VIOLATION_3819");
+                }
+                return error("Database error occurred while updating quantity: " + errorMessage);
+            }
+        }
+
+        // If returning (status changed from Accepted to something else), increase the asset quantity back
+        if isReturning {
+            do {
+                sql:ExecutionResult quantityResult = check database:dbClient->execute(`
+                    UPDATE assets 
+                    SET quantity = quantity + ${currentReq.quantity}
+                    WHERE asset_id = ${currentReq.asset_id} AND org_id = ${orgId}
+                `);
+
+                if quantityResult.affectedRowCount == 0 {
+                    return error("Failed to update asset quantity during return");
+                }
+            } on fail var e {
+                return error("Database error occurred while returning quantity: " + e.message());
+            }
+        }
+
+        // Update the asset request
         sql:ExecutionResult result = check database:dbClient->execute(`
             UPDATE requestedassets 
-            SET status = ${assetrequest.status ?: "Pending"}, 
+            SET status = ${newStatus}, 
             is_returning = ${assetrequest.is_returning ?: false},
             quantity = ${assetrequest.quantity},
             handover_date = ${assetrequest.handover_date}
