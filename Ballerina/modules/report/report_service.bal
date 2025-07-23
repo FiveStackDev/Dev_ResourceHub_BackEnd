@@ -11,49 +11,49 @@ configurable string PDFSHIFT_API_KEY = ?;
 service /report on database:reportListener {
     // Meal Reports
     resource function get generateWeeklyMeal() returns error? {
-        check generateAndSendReport("/schedulereports/weeklymealdetails", "Weekly Meal Events Report", "Weekly_Meal_Events_Report.pdf", "meal", "weekly");
+        check generateAndSendReport("/weeklymealdetails", "Weekly Meal Events Report", "Weekly_Meal_Events_Report.pdf", "meal", "weekly");
         io:println("Weekly Meal Report generated and sent successfully");
     }
     
     resource function get generateBiweeklyMeal() returns error? {
-        check generateAndSendReport("/schedulereports/biweeklymealdetails", "Biweekly Meal Events Report", "Biweekly_Meal_Events_Report.pdf", "meal", "Bi-weekly");
+        check generateAndSendReport("/biweeklymealdetails", "Biweekly Meal Events Report", "Biweekly_Meal_Events_Report.pdf", "meal", "Bi-weekly");
         io:println("Biweekly Meal Report generated and sent successfully");
     }
     
     resource function get generateMonthlyMeal() returns error? {
-        check generateAndSendReport("/schedulereports/monthlymealdetails", "Monthly Meal Events Report", "Monthly_Meal_Events_Report.pdf", "meal", "monthly");
+        check generateAndSendReport("/monthlymealdetails", "Monthly Meal Events Report", "Monthly_Meal_Events_Report.pdf", "meal", "monthly");
         io:println("Monthly Meal Report generated and sent successfully");
     }
 
     // Asset Reports
     resource function get generateWeeklyAsset() returns error? {
-        check generateAndSendReport("/schedulereports/weeklyassetrequestdetails", "Weekly Assets Report", "Weekly_Assets_Report.pdf", "asset", "weekly");
+        check generateAndSendReport("/weeklyassetrequestdetails", "Weekly Assets Report", "Weekly_Assets_Report.pdf", "asset", "weekly");
         io:println("Weekly Asset Report generated and sent successfully");
     }
     
     resource function get generateBiweeklyAsset() returns error? {
-        check generateAndSendReport("/schedulereports/biweeklyassetrequestdetails", "Biweekly Assets Report", "Biweekly_Assets_Report.pdf", "asset", "Bi-weekly");
+        check generateAndSendReport("/biweeklyassetrequestdetails", "Biweekly Assets Report", "Biweekly_Assets_Report.pdf", "asset", "Bi-weekly");
         io:println("Biweekly Asset Report generated and sent successfully");
     }
     
     resource function get generateMonthlyAsset() returns error? {
-        check generateAndSendReport("/schedulereports/monthlyassetrequestdetails", "Monthly Assets Report", "Monthly_Assets_Report.pdf", "asset", "monthly");
+        check generateAndSendReport("/monthlyassetrequestdetails", "Monthly Assets Report", "Monthly_Assets_Report.pdf", "asset", "monthly");
         io:println("Monthly Asset Report generated and sent successfully");
     }
 
     // Maintenance Reports
     resource function get generateWeeklyMaintenance() returns error? {
-        check generateAndSendReport("/schedulereports/weeklymaintenancedetails", "Weekly Maintenances Report", "Weekly_Maintenances_Report.pdf", "maintenance", "weekly");
+        check generateAndSendReport("/weeklymaintenancedetails", "Weekly Maintenances Report", "Weekly_Maintenances_Report.pdf", "maintenance", "weekly");
         io:println("✅ Weekly Maintenance Report generated and sent successfully");
     }
     
     resource function get generateBiweeklyMaintenance() returns error? {
-        check generateAndSendReport("/schedulereports/biweeklymaintenancedetails", "Biweekly Maintenances Report", "Biweekly_Maintenances_Report.pdf", "maintenance", "Bi-weekly");
+        check generateAndSendReport("/biweeklymaintenancedetails", "Biweekly Maintenances Report", "Biweekly_Maintenances_Report.pdf", "maintenance", "Bi-weekly");
         io:println("✅ Biweekly Maintenance Report generated and sent successfully");
     }
     
     resource function get generateMonthlyMaintenance() returns error? {
-        check generateAndSendReport("/schedulereports/monthlymaintenancedetails", "Monthly Maintenances Report", "Monthly_Maintenances_Report.pdf", "maintenance", "monthly");
+        check generateAndSendReport("/monthlymaintenancedetails", "Monthly Maintenances Report", "Monthly_Maintenances_Report.pdf", "maintenance", "monthly");
         io:println("✅ Monthly Maintenance Report generated and sent successfully");
     }
 }
@@ -81,7 +81,14 @@ function generateAndSendReport(string endpoint, string reportTitle, string fileN
 function generateAndSendReportForOrg(string endpoint, string reportTitle, string fileName, string reportName, string frequency, int orgId) returns error? {
 
     // 1. Fetch data for the report for this specific organization
-    http:Client dataClient = check new ("http://localhost:9091");
+
+    // Use the actual report generation endpoint
+    http:Client dataClient = check new ("https://e7f2b9c3-7f86-4a6b-91f9-2ae1c2e1c631-dev.e1-us-east-azure.choreoapis.dev/default/ballerina/schedulereports-4d0/v1.0");
+    
+    // Alternatively, if running locally, you can use:
+    // http:Client dataClient = check new ("http://localhost:9091/schedulereports");
+
+
     http:Response dataResp = check dataClient->get(endpoint + "/" + orgId.toString());
     json data = check dataResp.getJsonPayload();
 

@@ -6,11 +6,18 @@ class WeeklyJob {
     *task:Job;
     public function execute() {
         do {
-            http:Client reportClient = check new ("http://localhost:9091");
+
+            // Use the actual report generation endpoint
+            http:Client reportClient = check new ("https://e7f2b9c3-7f86-4a6b-91f9-2ae1c2e1c631-dev.e1-us-east-azure.choreoapis.dev/default/ballerina/report-a89/v1.0");
+            
+            // Alternatively, if running locally, you can use:
+            // http:Client reportClient = check new ("http://localhost:9091/report");
+
+
             
             // Generate meal report
             do {
-                http:Response _ = check reportClient->get("/report/generateWeeklyMeal");
+                http:Response _ = check reportClient->get("/generateWeeklyMeal");
                 io:println("✅ Weekly meal report job completed successfully");
             } on fail error e {
                 io:println("Error generating weekly meal report: ", e.toString());
@@ -18,7 +25,7 @@ class WeeklyJob {
 
             // Generate asset report
             do {
-                http:Response _ = check reportClient->get("/report/generateWeeklyAsset");
+                http:Response _ = check reportClient->get("/generateWeeklyAsset");
                 io:println("✅ Weekly asset report job completed successfully");
             } on fail error e {
                 io:println("Error generating weekly asset report: ", e.toString());
@@ -26,7 +33,7 @@ class WeeklyJob {
 
             // Generate maintenance report
             do {
-                http:Response _ = check reportClient->get("/report/generateWeeklyMaintenance");
+                http:Response _ = check reportClient->get("/generateWeeklyMaintenance");
                 io:println("✅ Weekly maintenance report job completed successfully");
             } on fail error e {
                 io:println("Error generating weekly maintenance report: ", e.toString());
@@ -44,11 +51,16 @@ class BiweeklyJob {
     *task:Job;
     public function execute() {
         do {
-            http:Client reportClient = check new ("http://localhost:9091");
+            
+            // Use the actual report generation endpoint
+            http:Client reportClient = check new ("https://e7f2b9c3-7f86-4a6b-91f9-2ae1c2e1c631-dev.e1-us-east-azure.choreoapis.dev/default/ballerina/report-a89/v1.0");
+            
+            // Alternatively, if running locally, you can use:
+            // http:Client reportClient = check new ("http://localhost:9091/report");
             
             // Generate meal report
             do {
-                http:Response _ = check reportClient->get("/report/generateBiweeklyMeal");
+                http:Response _ = check reportClient->get("/generateBiweeklyMeal");
                 io:println("✅ Biweekly meal report job completed successfully");
             } on fail error e {
                 io:println("Error generating biweekly meal report: ", e.toString());
@@ -56,7 +68,7 @@ class BiweeklyJob {
 
             // Generate asset report
             do {
-                http:Response _ = check reportClient->get("/report/generateBiweeklyAsset");
+                http:Response _ = check reportClient->get("/generateBiweeklyAsset");
                 io:println("✅ Biweekly asset report job completed successfully");
             } on fail error e {
                 io:println("Error generating biweekly asset report: ", e.toString());
@@ -64,7 +76,7 @@ class BiweeklyJob {
 
             // Generate maintenance report
             do {
-                http:Response _ = check reportClient->get("/report/generateBiweeklyMaintenance");
+                http:Response _ = check reportClient->get("/generateBiweeklyMaintenance");
                 io:println("✅ Biweekly maintenance report job completed successfully");
             } on fail error e {
                 io:println("Error generating biweekly maintenance report: ", e.toString());
@@ -82,11 +94,16 @@ class MonthlyJob {
     *task:Job;
     public function execute() {
         do {
-            http:Client reportClient = check new ("http://localhost:9091");
+            
+            // Use the actual report generation endpoint
+            http:Client reportClient = check new ("https://e7f2b9c3-7f86-4a6b-91f9-2ae1c2e1c631-dev.e1-us-east-azure.choreoapis.dev/default/ballerina/report-a89/v1.0");
+            
+            // Alternatively, if running locally, you can use:
+            // http:Client reportClient = check new ("http://localhost:9091/report");
             
             // Generate meal report
             do {
-                http:Response _ = check reportClient->get("/report/generateMonthlyMeal");
+                http:Response _ = check reportClient->get("/generateMonthlyMeal");
                 io:println("✅ Monthly meal report job completed successfully");
             } on fail error e {
                 io:println("Error generating monthly meal report: ", e.toString());
@@ -94,7 +111,7 @@ class MonthlyJob {
 
             // Generate asset report
             do {
-                http:Response _ = check reportClient->get("/report/generateMonthlyAsset");
+                http:Response _ = check reportClient->get("/generateMonthlyAsset");
                 io:println("✅ Monthly asset report job completed successfully");
             } on fail error e {
                 io:println("Error generating monthly asset report: ", e.toString());
@@ -102,7 +119,7 @@ class MonthlyJob {
 
             // Generate maintenance report
             do {
-                http:Response _ = check reportClient->get("/report/generateMonthlyMaintenance");
+                http:Response _ = check reportClient->get("/generateMonthlyMaintenance");
                 io:println("✅ Monthly maintenance report job completed successfully");
             } on fail error e {
                 io:println("Error generating monthly maintenance report: ", e.toString());
