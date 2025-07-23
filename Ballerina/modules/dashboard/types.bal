@@ -32,7 +32,8 @@ public type MonthlyMaintenanceData record {|
 |};
 
 // Meal distribution data for charts
-public type MealDistributionData record {|
+public type MealDistributionData record {| 
+    string meal_date;
     int day_of_week;
     string mealtime_name;
     int count;
