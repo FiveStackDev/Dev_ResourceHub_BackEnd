@@ -75,34 +75,41 @@ service /user on database:mainListener {
         if result.affectedRowCount != 0 { 
             email:Message emailMsg = { 
                 to: [user.email], 
-                subject: "Your Account Login Password", 
-                body: string `Hello,
+                subject: "Welcome to ResourceHub - Account Created Successfully",
+                body: string `Hello and Welcome to ResourceHub!
 
-Welcome to ResourceHub - we're thrilled to have you join our platform!
+We're thrilled to have you join our platform! Your account has been successfully created, and you're now ready to access our comprehensive suite of resource management tools.
 
-An account has been created for you, and you're now one step away from accessing a powerful suite of tools and resources designed to make your experience smooth and productive.
-
-Here are your temporary login credentials:
-
+ACCOUNT DETAILS:
+Email: ${user.email}
 Temporary Password: ${randomPassword}
 
-To begin using your account, please follow these steps:
+GETTING STARTED:
+1. Visit our platform: https://fivestackdev-resourcehub.vercel.app/
+2. Log in using your email and the temporary password above
+3. You will be prompted to create a new secure password immediately after login
+4. Complete your profile setup to get the most out of ResourceHub
 
-Click the link below to log in to your account:
-https://fivestackdev-resourcehub.vercel.app/
+IMPORTANT SECURITY REMINDER:
+- This is a temporary password that must be changed upon first login
+- Choose a strong, unique password that you don't use elsewhere
+- Keep your login credentials secure and don't share them with others
 
-Use your temporary password to log in.
+WHAT'S NEXT?
+Once you log in, you'll have access to:
+- Resource management tools
+- Team collaboration features
+- Administrative dashboards
+- And much more!
 
-Once logged in, you will be prompted to create a new secure password. This is a mandatory step to protect your account.
+NEED SUPPORT?
+If you have any questions or need assistance getting started, our support team is here to help. Contact us at resourcehub.contact.info@gmail.com
 
-⚠ Important: For your security, we recommend choosing a strong password that you do not use elsewhere.
-
-If you were not expecting this account or believe this message was sent in error, you can safely ignore it—no action will be taken.
-
-Should you need help or have any questions, feel free to contact our support team. We're here to help!
+We're excited to see how ResourceHub will help streamline your resource management processes!
 
 Best regards,
-The ResourceHub Team` 
+The ResourceHub Team
+Your Digital Resource Management Solution` 
             }; 
             var emailResult = common:emailClient->sendMessage(emailMsg); 
             if emailResult is error { 

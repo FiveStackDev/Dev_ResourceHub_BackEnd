@@ -106,16 +106,29 @@ service /settings on database:mainListener {
     resource function post sendEmail(@http:Payload Email email) returns json|error {
         email:Message resetEmail = {
             to: [email.email],
-            subject: "🔐 Your Verification Code",
-            body: string `🔐 Your Verification Code: ${email.code ?: "!!error!!"}
+            subject: "Email Verification Code - ResourceHub",
+            body: string `Hello,
 
-Please enter this code within the next few minutes to complete the verification process. This helps us ensure the security of your account and provide you with the best experience.
+Thank you for using ResourceHub! We need to verify your email address to ensure the security of your account.
 
-If you did not request this verification code, you can safely ignore this email. Your account will remain unchanged and no action will be taken.
+VERIFICATION CODE: ${email.code ?: "ERROR - Contact Support"}
 
-Need help? Our support team is here for you. Feel free to contact us at resourcehub.contact.info@gmail.com  if you have any questions or concerns.
+INSTRUCTIONS:
+1. Enter this verification code in the application within the next few minutes
+2. This code is valid for a limited time for security purposes
+3. Complete the verification process to continue using your account
 
-Thanks for choosing ResourceHub. We're excited to have you on board!`
+SECURITY NOTE:
+If you did not request this verification code, you can safely ignore this email. No changes will be made to your account, and your information remains secure.
+
+NEED ASSISTANCE?
+Our support team is ready to help if you encounter any issues. Contact us at resourcehub.contact.info@gmail.com with any questions or concerns.
+
+Thank you for choosing ResourceHub. We appreciate your trust in our platform and are committed to providing you with excellent service.
+
+Best regards,
+The ResourceHub Team
+Your Digital Resource Management Solution`
         };
 
         error? emailResult = common:emailClient->sendMessage(resetEmail);

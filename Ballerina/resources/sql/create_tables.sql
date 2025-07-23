@@ -62,13 +62,14 @@ CREATE TABLE assets (
     asset_id INT AUTO_INCREMENT PRIMARY KEY,
     asset_name VARCHAR(255) NOT NULL,
     category VARCHAR(255),
-    quantity INT NOT NULL,
+    quantity INT NOT NULL CHECK (quantity >= 0),
     condition_type VARCHAR(255),
     location VARCHAR(255),
     is_available BOOLEAN DEFAULT TRUE,
     org_id INT,
     FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE
 );
+
 
 -- Requested Assets Table
 CREATE TABLE requestedassets (

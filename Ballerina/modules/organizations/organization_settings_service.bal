@@ -163,12 +163,31 @@ service /orgsettings on database:mainListener {
     resource function post sendEmail(@http:Payload user:Email email) returns json|error {
         email:Message resetEmail = {
             to: [email.email],
-            subject: "🔐 Your Organization Verification Code",
-            body: string `🔐 Your Verification Code: ${email.code ?: "!!error!!"}
+            subject: "Organization Email Verification - ResourceHub",
+            body: string `Hello,
 
-Enter this code in the app to verify your email address.
+Thank you for using ResourceHub for your organization's resource management needs. We need to verify this email address to ensure secure access to your organization's account.
 
-If you didn't request this, you can safely ignore this message.`
+VERIFICATION CODE: ${email.code ?: "ERROR - Contact Support"}
+
+INSTRUCTIONS:
+1. Enter this verification code in the application to verify your organization's email
+2. This code is valid for a limited time for security purposes
+3. Complete the verification to continue managing your organization's settings
+
+SECURITY NOTICE:
+This verification helps protect your organization's data and ensures only authorized personnel can make changes to your account settings.
+
+If you did not request this verification code, please ignore this email. Your organization's account will remain unchanged and secure.
+
+NEED ASSISTANCE?
+Our support team is available to help with any questions or concerns. Contact us at resourcehub.contact.info@gmail.com
+
+Thank you for trusting ResourceHub with your organization's resource management needs.
+
+Best regards,
+The ResourceHub Team
+Your Digital Resource Management Solution`
         };
 
         error? emailResult = common:emailClient->sendMessage(resetEmail);

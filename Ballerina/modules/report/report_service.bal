@@ -12,33 +12,33 @@ service /report on database:reportListener {
     // Meal Reports
     resource function get generateWeeklyMeal() returns error? {
         check generateAndSendReport("/schedulereports/weeklymealdetails", "Weekly Meal Events Report", "Weekly_Meal_Events_Report.pdf", "meal", "weekly");
-        io:println("✅ Weekly Meal Report generated and sent successfully");
+        io:println("Weekly Meal Report generated and sent successfully");
     }
     
     resource function get generateBiweeklyMeal() returns error? {
         check generateAndSendReport("/schedulereports/biweeklymealdetails", "Biweekly Meal Events Report", "Biweekly_Meal_Events_Report.pdf", "meal", "Bi-weekly");
-        io:println("✅ Biweekly Meal Report generated and sent successfully");
+        io:println("Biweekly Meal Report generated and sent successfully");
     }
     
     resource function get generateMonthlyMeal() returns error? {
         check generateAndSendReport("/schedulereports/monthlymealdetails", "Monthly Meal Events Report", "Monthly_Meal_Events_Report.pdf", "meal", "monthly");
-        io:println("✅ Monthly Meal Report generated and sent successfully");
+        io:println("Monthly Meal Report generated and sent successfully");
     }
 
     // Asset Reports
     resource function get generateWeeklyAsset() returns error? {
         check generateAndSendReport("/schedulereports/weeklyassetrequestdetails", "Weekly Assets Report", "Weekly_Assets_Report.pdf", "asset", "weekly");
-        io:println("✅ Weekly Asset Report generated and sent successfully");
+        io:println("Weekly Asset Report generated and sent successfully");
     }
     
     resource function get generateBiweeklyAsset() returns error? {
         check generateAndSendReport("/schedulereports/biweeklyassetrequestdetails", "Biweekly Assets Report", "Biweekly_Assets_Report.pdf", "asset", "Bi-weekly");
-        io:println("✅ Biweekly Asset Report generated and sent successfully");
+        io:println("Biweekly Asset Report generated and sent successfully");
     }
     
     resource function get generateMonthlyAsset() returns error? {
         check generateAndSendReport("/schedulereports/monthlyassetrequestdetails", "Monthly Assets Report", "Monthly_Assets_Report.pdf", "asset", "monthly");
-        io:println("✅ Monthly Asset Report generated and sent successfully");
+        io:println("Monthly Asset Report generated and sent successfully");
     }
 
     // Maintenance Reports

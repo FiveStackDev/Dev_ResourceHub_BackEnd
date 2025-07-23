@@ -149,22 +149,34 @@ service /auth on database:authListener {
         // Send email with new password
         email:Message resetEmail = {
             to: [password.email],
-            subject: "Your Account Password Reset",
-            body: string `We received a request to reset the password associated with your account. If you made this request, you can reset your password by clicking the button below:
+            subject: "Password Reset - ResourceHub Account",
+            body: string `Hello,
 
-https://fivestackdev-resourcehub.vercel.app/
+We received a request to reset the password for your ResourceHub account. If you made this request, please follow the instructions below to regain access to your account.
 
-As part of the process, here is your temporary password: ${randomPassword}
+TEMPORARY LOGIN CREDENTIALS:
+Email: ${password.email}
+Temporary Password: ${randomPassword}
 
-Please use this temporary password to log in and remember to update it with a new secure password after logging in.
+NEXT STEPS:
+1. Visit our login page: https://fivestackdev-resourcehub.vercel.app/
+2. Log in using your email and the temporary password above
+3. Once logged in, you will be prompted to create a new secure password
+4. Choose a strong password that you don't use elsewhere
 
-If you did not request a password reset, please ignore this email. Your password will remain unchanged.
+IMPORTANT SECURITY NOTICE:
+- This temporary password will expire after your first successful login
+- For your security, please update your password immediately after logging in
+- If you did not request this password reset, please ignore this email - your account remains secure
 
-If you have any questions or need further assistance, feel free to contact our support team.
+NEED HELP?
+If you experience any issues or have questions, our support team is here to help. Contact us at resourcehub.contact.info@gmail.com
+
+Thank you for using ResourceHub. We're committed to keeping your account secure and providing you with the best experience possible.
 
 Best regards,
-ResourceHub
-Support Team`
+The ResourceHub Team
+Your Digital Resource Management Solution`
         };
 
         error? emailResult = common:emailClient->sendMessage(resetEmail);
