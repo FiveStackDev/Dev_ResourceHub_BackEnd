@@ -126,3 +126,11 @@ CREATE TABLE schedulereports (
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE
 );
+
+CREATE TABLE mealtime_mealtype (
+    mealtime_id INT,
+    mealtype_id INT,
+    PRIMARY KEY (mealtime_id, mealtype_id),
+    FOREIGN KEY (mealtime_id) REFERENCES mealtimes(mealtime_id) ON DELETE CASCADE,
+    FOREIGN KEY (mealtype_id) REFERENCES mealtypes(mealtype_id) ON DELETE CASCADE
+);
