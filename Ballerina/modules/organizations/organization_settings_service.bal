@@ -169,6 +169,55 @@ service /orgsettings on database:mainListener {
         }
     }
 
+    // Delete organization - ONLY SuperAdmin can delete organization (WARNING: This will delete ALL organization data)
+    resource function delete organization/[int orgid](http:Request req) returns json|error {
+        jwt:Payload payload = check common:getValidatedPayload(req);
+
+        // Only allow SuperAdmin to delete organization
+        if (!common:hasAnyRole(payload, ["SuperAdmin"])) {
+            return error("Forbidden: Only SuperAdmin can delete an organization");
+        }
+
+        int userOrgId = check common:getOrgId(payload);
+        
+        // Ensure SuperAdmin can only delete their own organization
+        if (orgid != userOrgId) {
+            return error("Forbidden: You can only delete your own organization");
+        }
+
+        // Check if organization exists before attempting deletion
+        stream<record {| int count; |}, sql:Error?> orgCheckStream = 
+            database:dbClient->query(`SELECT COUNT(*) as count FROM organizations WHERE org_id = ${orgid}`);
+
+        record {| int count; |}[] orgCheckResult = [];
+        check orgCheckStream.forEach(function(record {| int count; |} result) {
+            orgCheckResult.push(result);
+        });
+
+        if (orgCheckResult.length() == 0 || orgCheckResult[0].count == 0) {
+            return error("Organization not found");
+        }
+
+        // WARNING: This will CASCADE DELETE all related data:
+        // - All users in the organization
+        // - All assets, meal times, meal types
+        // - All requests (meals, assets, maintenance)
+        // - All notifications and reports
+        // This action is IRREVERSIBLE
+        sql:ExecutionResult result = check database:dbClient->execute(`
+            DELETE FROM organizations WHERE org_id = ${orgid}
+        `);
+
+        if result.affectedRowCount > 0 {
+            return {
+                message: "Organization and all associated data deleted successfully",
+                warning: "This action is irreversible. All users, assets, requests, and data have been permanently removed."
+            };
+        } else {
+            return error("Failed to delete organization");
+        }
+    }
+
     // Send verification email with code - open endpoint (no auth required)
     resource function post sendEmail(@http:Payload user:Email email) returns json|error {
         email:Message resetEmail = {
