@@ -21,9 +21,9 @@ service /maintenance on database:mainListener {
         if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
-        
+
         int orgId = check common:getOrgId(payload);
-        
+
         stream<Maintenance, sql:Error?> resultStream =
             database:dbClient->query(`SELECT 
             m.maintenance_id,
@@ -52,9 +52,9 @@ service /maintenance on database:mainListener {
         if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
-        
+
         int orgId = check common:getOrgId(payload);
-        
+
         stream<Maintenance, sql:Error?> resultStream =
             database:dbClient->query(`SELECT 
             m.maintenance_id,
@@ -84,9 +84,9 @@ service /maintenance on database:mainListener {
         if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to add maintenance requests");
         }
-        
+
         int orgId = check common:getOrgId(payload);
-        
+
         sql:ExecutionResult result = check database:dbClient->execute(`
             INSERT INTO maintenance (user_id, name, description, priority_level, status, submitted_date, org_id)
             VALUES (${maintenance.user_id}, ${maintenance.name ?: ""}, ${maintenance.description}, 
@@ -104,9 +104,9 @@ service /maintenance on database:mainListener {
         if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to delete maintenance requests");
         }
-        
+
         int orgId = check common:getOrgId(payload);
-        
+
         sql:ExecutionResult result = check database:dbClient->execute(`
             DELETE FROM maintenance WHERE maintenance_id = ${id} AND org_id = ${orgId}
         `);
@@ -122,9 +122,9 @@ service /maintenance on database:mainListener {
         if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to update maintenance requests");
         }
-        
+
         int orgId = check common:getOrgId(payload);
-        
+
         sql:ExecutionResult result = check database:dbClient->execute(`
             UPDATE maintenance 
             SET name = ${maintenance.name ?: ""}, 

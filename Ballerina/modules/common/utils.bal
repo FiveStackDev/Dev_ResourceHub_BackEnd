@@ -108,7 +108,7 @@ public function hashPasswordWithWorkFactor(string password, int workFactor) retu
     if (workFactor < 4 || workFactor > 31) {
         return error("Work factor must be between 4 and 31");
     }
-    
+
     string|crypto:Error hashedPassword = crypto:hashBcrypt(password, workFactor);
     if (hashedPassword is crypto:Error) {
         return error("Failed to hash password: " + hashedPassword.message());

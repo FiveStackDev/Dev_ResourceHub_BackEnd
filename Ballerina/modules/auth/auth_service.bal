@@ -1,11 +1,12 @@
+import ResourceHub.common;
+import ResourceHub.database;
+import ResourceHub.user;
+
 import ballerina/email;
 import ballerina/http;
 import ballerina/io;
 import ballerina/jwt;
 import ballerina/sql;
-import ResourceHub.database;
-import ResourceHub.common;
-import ResourceHub.user;
 
 // JWT configuration is now in jwt_utils.bal to avoid duplication
 
@@ -132,7 +133,7 @@ service /auth on database:authListener {
         // First check if the user exists in the database
         sql:ParameterizedQuery checkUserQuery = `SELECT user_id, email FROM users WHERE email = ${password.email}`;
         stream<record {|int user_id; string email;|}, sql:Error?> userStream = database:dbClient->query(checkUserQuery);
-        
+
         record {|int user_id; string email;|}? userRecord = ();
         check userStream.forEach(function(record {|int user_id; string email;|} user) {
             userRecord = user;
@@ -215,7 +216,7 @@ Your Digital Resource Management Solution`
         // Check if the user exists in the database
         sql:ParameterizedQuery checkUserQuery = `SELECT user_id, email FROM users WHERE email = ${email.email}`;
         stream<record {|int user_id; string email;|}, sql:Error?> userStream = database:dbClient->query(checkUserQuery);
-        
+
         record {|int user_id; string email;|}? userRecord = ();
         check userStream.forEach(function(record {|int user_id; string email;|} user) {
             userRecord = user;

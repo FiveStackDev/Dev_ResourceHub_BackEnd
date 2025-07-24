@@ -1,12 +1,13 @@
-import ballerina/http;
-import ballerina/sql;
-import ballerina/jwt;
-import ResourceHub.database;
-import ResourceHub.common;
 import ResourceHub.asset;
+import ResourceHub.common;
+import ResourceHub.database;
 import ResourceHub.maintenance;
 import ResourceHub.meal;
+
+import ballerina/http;
 import ballerina/io;
+import ballerina/jwt;
+import ballerina/sql;
 
 @http:ServiceConfig {
     cors: {
@@ -16,22 +17,22 @@ import ballerina/io;
     }
 }
 
-service /schedulereports on database:mainListener{
-    resource function post addscedulereport(http:Request req,@http:Payload ScheduleReport schedulereport) returns json | error{
+service /schedulereports on database:mainListener {
+    resource function post addscedulereport(http:Request req, @http:Payload ScheduleReport schedulereport) returns json|error {
         jwt:Payload payload = check common:getValidatedPayload(req);
-        if (!common:hasAnyRole(payload, ["Admin","SuperAdmin"])) {
+        if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to add schedule reports");
         }
-        
+
         int orgId = check common:getOrgId(payload);
-        
+
         sql:ExecutionResult result = check database:dbClient->execute(`
             insert into schedulereports (user_id,report_name,frequency,org_id)
             values(${schedulereport.user_id},${schedulereport.report_name},${schedulereport.frequency},${orgId})
         `);
-        if result.affectedRowCount == 0 { 
-            return {message: "Failed to add schedule event"}; 
-        } 
+        if result.affectedRowCount == 0 {
+            return {message: "Failed to add schedule event"};
+        }
         return {message: "schedule event added successfully"};
     }
 }
@@ -135,52 +136,52 @@ service /schedulereports on database:reportListener {
     }
 
     resource function get weeklymealdetails/[int orgId]() returns meal:MealEvent[]|error {
-        stream<meal:MealEvent, sql:Error?> resultStream = 
+        stream<meal:MealEvent, sql:Error?> resultStream =
             database:dbClient->query(`SELECT requestedmeals.requestedmeal_id, mealtime_id,mealtimes.mealtime_name , mealtype_id,mealtypes.mealtype_name , username,users.user_id, submitted_date, meal_request_date 
             FROM requestedmeals
             JOIN users ON requestedmeals.user_id = users.user_id 
             join mealtypes ON requestedmeals.meal_type_id = mealtypes.mealtype_id
             join mealtimes ON requestedmeals.meal_time_id = mealtimes.mealtime_id
             WHERE requestedmeals.submitted_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND CURDATE()
-            AND requestedmeals.org_id = ${orgId};`); 
-        meal:MealEvent[] events = []; 
-        check resultStream.forEach(function(meal:MealEvent event) { 
-            events.push(event); 
-        }); 
-        return events; 
-    } 
+            AND requestedmeals.org_id = ${orgId};`);
+        meal:MealEvent[] events = [];
+        check resultStream.forEach(function(meal:MealEvent event) {
+            events.push(event);
+        });
+        return events;
+    }
 
     resource function get biweeklymealdetails/[int orgId]() returns meal:MealEvent[]|error {
-        stream<meal:MealEvent, sql:Error?> resultStream = 
+        stream<meal:MealEvent, sql:Error?> resultStream =
             database:dbClient->query(`SELECT requestedmeals.requestedmeal_id, mealtime_id,mealtimes.mealtime_name , mealtype_id,mealtypes.mealtype_name , username,users.user_id, submitted_date, meal_request_date 
             FROM requestedmeals
             JOIN users ON requestedmeals.user_id = users.user_id 
             join mealtypes ON requestedmeals.meal_type_id = mealtypes.mealtype_id
             join mealtimes ON requestedmeals.meal_time_id = mealtimes.mealtime_id
             WHERE requestedmeals.submitted_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 14 DAY) AND CURDATE()
-            AND requestedmeals.org_id = ${orgId};`); 
-        meal:MealEvent[] events = []; 
-        check resultStream.forEach(function(meal:MealEvent event) { 
-            events.push(event); 
-        }); 
-        return events; 
-    } 
+            AND requestedmeals.org_id = ${orgId};`);
+        meal:MealEvent[] events = [];
+        check resultStream.forEach(function(meal:MealEvent event) {
+            events.push(event);
+        });
+        return events;
+    }
 
     resource function get monthlymealdetails/[int orgId]() returns meal:MealEvent[]|error {
-        stream<meal:MealEvent, sql:Error?> resultStream = 
+        stream<meal:MealEvent, sql:Error?> resultStream =
             database:dbClient->query(`SELECT requestedmeals.requestedmeal_id, mealtime_id,mealtimes.mealtime_name , mealtype_id,mealtypes.mealtype_name , username,users.user_id, submitted_date, meal_request_date 
             FROM requestedmeals
             JOIN users ON requestedmeals.user_id = users.user_id 
             join mealtypes ON requestedmeals.meal_type_id = mealtypes.mealtype_id
             join mealtimes ON requestedmeals.meal_time_id = mealtimes.mealtime_id
             WHERE requestedmeals.submitted_date BETWEEN DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND CURDATE()
-            AND requestedmeals.org_id = ${orgId};`); 
-        meal:MealEvent[] events = []; 
-        check resultStream.forEach(function(meal:MealEvent event) { 
-            events.push(event); 
-        }); 
-        return events; 
-    } 
+            AND requestedmeals.org_id = ${orgId};`);
+        meal:MealEvent[] events = [];
+        check resultStream.forEach(function(meal:MealEvent event) {
+            events.push(event);
+        });
+        return events;
+    }
 
     resource function get weeklymaintenancedetails/[int orgId]() returns maintenance:Maintenance[]|error {
         stream<maintenance:Maintenance, sql:Error?> resultStream =
@@ -205,7 +206,7 @@ service /schedulereports on database:reportListener {
         });
         return maintenances;
     }
-    
+
     resource function get biweeklymaintenancedetails/[int orgId]() returns maintenance:Maintenance[]|error {
         stream<maintenance:Maintenance, sql:Error?> resultStream =
             database:dbClient->query(`SELECT 
@@ -229,7 +230,7 @@ service /schedulereports on database:reportListener {
         });
         return maintenances;
     }
-    
+
     resource function get monthlymaintenancedetails/[int orgId]() returns maintenance:Maintenance[]|error {
         stream<maintenance:Maintenance, sql:Error?> resultStream =
             database:dbClient->query(`SELECT 

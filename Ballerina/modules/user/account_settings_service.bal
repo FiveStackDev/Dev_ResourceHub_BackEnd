@@ -1,10 +1,11 @@
+import ResourceHub.common;
+import ResourceHub.database;
+
 import ballerina/email;
 import ballerina/http;
+import ballerina/io;
 import ballerina/jwt;
 import ballerina/sql;
-import ResourceHub.database;
-import ResourceHub.common;
-import ballerina/io;
 
 // CORS configuration for client access
 @http:ServiceConfig {
@@ -74,14 +75,14 @@ service /settings on database:mainListener {
             return error("Forbidden: You do not have permission to update email");
         }
 
-               int orgId = check common:getOrgId(payload);
-        
+        int orgId = check common:getOrgId(payload);
+
         // Check if email already exists in the organization (excluding current user)
-        stream<record {| int count; |}, sql:Error?> emailCheckStream = 
+        stream<record {|int count;|}, sql:Error?> emailCheckStream =
             database:dbClient->query(`SELECT COUNT(*) as count FROM users WHERE email = ${email.email} AND user_id != ${userid}`);
 
-        record {| int count; |}[] emailCheckResult = [];
-        check emailCheckStream.forEach(function(record {| int count; |} result) {
+        record {|int count;|}[] emailCheckResult = [];
+        check emailCheckStream.forEach(function(record {|int count;|} result) {
             emailCheckResult.push(result);
         });
 
