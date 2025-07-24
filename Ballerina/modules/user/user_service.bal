@@ -3,7 +3,6 @@ import ballerina/http;
 import ballerina/io;
 import ballerina/sql;
 import ballerina/jwt;
-import ballerina/time;
 import ResourceHub.database;
 import ResourceHub.common;
 
@@ -68,11 +67,10 @@ service /user on database:mainListener {
             return error("Failed to hash password");
         }
         
-        string currentTimestamp = time:utcToString(time:utcNow());
         sql:ExecutionResult result = check database:dbClient->execute(` 
             insert into 
             users (username,usertype,email,profile_picture_url,phone_number,password,bio,created_at,org_id) 
-            values (${user.email},${user.usertype},${user.email},'https://img.freepik.com/free-vector/smiling-young-man-illustration_1308-174669.jpg?t=st=1746539771~exp=1746543371~hmac=66ec0b65bf0ae4d49922a69369cec4c0e3b3424613be723e0ca096a97d1039f1&w=740',NULL,${hashedPassword},${user.bio},${currentTimestamp},${orgId}) 
+            values (${user.email},${user.usertype},${user.email},'https://img.freepik.com/free-vector/smiling-young-man-illustration_1308-174669.jpg?t=st=1746539771~exp=1746543371~hmac=66ec0b65bf0ae4d49922a69369cec4c0e3b3424613be723e0ca096a97d1039f1&w=740',NULL,${hashedPassword},${user.bio},NOW(),${orgId}) 
         `); 
         if result.affectedRowCount != 0 { 
             email:Message emailMsg = { 

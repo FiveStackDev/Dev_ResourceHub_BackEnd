@@ -2,7 +2,6 @@ import ballerina/email;
 import ballerina/http;
 import ballerina/jwt;
 import ballerina/sql;
-import ballerina/time;
 import ResourceHub.database;
 import ResourceHub.common;
 import ResourceHub.user;
@@ -73,11 +72,10 @@ service /orgsettings on database:mainListener {
         }
 
         // Step 1: Create the organization first
-        string currentTimestamp = time:utcToString(time:utcNow());
         sql:ExecutionResult result = check database:dbClient->execute(`
             INSERT INTO organizations (org_name, org_email, org_about, org_website, org_phone, org_founded, created_at, updated_at)
             VALUES (${register.org_name}, ${register.email}, ${register.org_about ?: ""}, 
-                    ${register.org_website ?: ""}, ${register.org_phone ?: ""}, ${register.org_founded ?: ""}, ${currentTimestamp}, ${currentTimestamp})
+                    ${register.org_website ?: ""}, ${register.org_phone ?: ""}, ${register.org_founded ?: ""}, NOW(), NOW())
         `);
         
         // Step 2: Get the newly created organization ID
@@ -97,7 +95,7 @@ service /orgsettings on database:mainListener {
         sql:ExecutionResult result2 = check database:dbClient->execute(`
             INSERT INTO 
             users (username,usertype,email,profile_picture_url,phone_number,password,bio,created_at,org_id) 
-            VALUES (${register.username},'SuperAdmin',${register.email},'https://img.freepik.com/free-vector/smiling-young-man-illustration_1308-174669.jpg?t=st=1746539771~exp=1746543371~hmac=66ec0b65bf0ae4d49922a69369cec4c0e3b3424613be723e0ca096a97d1039f1&w=740',NULL,${hashedPassword},'Organization Owner',${currentTimestamp},${orgId}) 
+            VALUES (${register.username},'SuperAdmin',${register.email},'https://img.freepik.com/free-vector/smiling-young-man-illustration_1308-174669.jpg?t=st=1746539771~exp=1746543371~hmac=66ec0b65bf0ae4d49922a69369cec4c0e3b3424613be723e0ca096a97d1039f1&w=740',NULL,${hashedPassword},'Organization Owner',NOW(),${orgId}) 
         `);
 
         if result.affectedRowCount > 0 && result2.affectedRowCount > 0 {
@@ -124,7 +122,6 @@ service /orgsettings on database:mainListener {
             return error("Forbidden: You can only update your own organization's profile");
         }
 
-        string updateTimestamp = time:utcToString(time:utcNow());
         sql:ExecutionResult result = check database:dbClient->execute(`
             UPDATE organizations 
             SET org_name = ${profile.org_name}, 
@@ -134,7 +131,7 @@ service /orgsettings on database:mainListener {
                 org_website = ${profile.org_website ?: ""},
                 org_phone = ${profile.org_phone ?: ""},
                 org_founded = ${profile.org_founded ?: ""},
-                updated_at = ${updateTimestamp}
+                updated_at = NOW()
             WHERE org_id = ${orgid}
         `);
 
@@ -161,9 +158,8 @@ service /orgsettings on database:mainListener {
             return error("Forbidden: You can only update your own organization's email");
         }
 
-        string updateTimestamp = time:utcToString(time:utcNow());
         sql:ExecutionResult result = check database:dbClient->execute(`
-            UPDATE organizations SET org_email = ${email.email}, updated_at = ${updateTimestamp} WHERE org_id = ${orgid}
+            UPDATE organizations SET org_email = ${email.email}, updated_at = NOW() WHERE org_id = ${orgid}
         `);
 
         if result.affectedRowCount > 0 {
