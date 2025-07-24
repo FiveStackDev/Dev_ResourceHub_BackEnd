@@ -1,9 +1,10 @@
-import ballerina/io;
-import ballerina/http;
-import ballerina/sql;
-import ballerina/jwt;
-import ResourceHub.database;
 import ResourceHub.common;
+import ResourceHub.database;
+
+import ballerina/http;
+import ballerina/io;
+import ballerina/jwt;
+import ballerina/sql;
 
 // Dashboard User Service to handle user dashboard data
 @http:ServiceConfig {
@@ -22,9 +23,9 @@ service /dashboard/user on database:dashboardListener {
         if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
-        
+
         int orgId = check common:getOrgId(payload);
-        
+
         // Query for meals today (assuming meal_request_date is a timestamp)
         record {|int meals_today;|} mealsTodayResult = check database:dbClient->queryRow(
             `SELECT COUNT(requestedmeal_id) AS meals_today 
@@ -201,7 +202,7 @@ service /dashboard/user on database:dashboardListener {
     // Get quick actions available for the user
     resource function get quickactions(http:Request req) returns json|error {
         jwt:Payload payload = check common:getValidatedPayload(req);
-        if (!common:hasAnyRole(payload, ["Admin","User","SuperAdmin"])) {
+        if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access quick actions");
         }
 
