@@ -258,6 +258,77 @@ Your Digital Resource Management Solution`
             message: "Code sent successfully. Check your email for the Verification Code."
         };
     }
+
+    // Send deletion verification email - SuperAdmin only (requires authentication for organization deletion)
+    resource function post deleteverification (@http:Payload DeleteRec deleterec, http:Request req) returns json|error {
+        jwt:Payload payload = check common:getValidatedPayload(req);
+        // Only allow SuperAdmin to request deletion verification
+        if (!common:hasAnyRole(payload, ["SuperAdmin"])) {
+            return error("Forbidden: Only SuperAdmin can request organization deletion verification");
+        }
+
+        int orgId = check common:getOrgId(payload);
+        int userId = check common:getUserId(payload); 
+
+        // Get the hashed password from DB for this user/org
+        record {|string password;|}|sql:Error currentPasswordResult = database:dbClient->queryRow(`
+            SELECT password FROM users WHERE user_id = ${userId} AND org_id = ${orgId}
+        `);
+
+        if currentPasswordResult is sql:Error {
+            return error("User not found or not authorized for this organization");
+        }
+
+        // Compare the provided password with the stored hash
+        boolean passwordMatch = check common:verifyPassword(deleterec.password, currentPasswordResult.password);
+        if !passwordMatch {
+            return error("Forbidden: Incorrect password, Try again");
+        }
+
+        email:Message deletionEmail = {
+            to: [deleterec.email],
+            subject: "CRITICAL: Organization Deletion Verification - ResourceHub",
+            body: string `CRITICAL SECURITY ALERT
+
+You have requested to DELETE your organization from ResourceHub. This is a PERMANENT and IRREVERSIBLE action.
+
+DELETION VERIFICATION CODE: ${deleterec.code ?: "ERROR - Contact Support"}
+
+WARNING: This action will PERMANENTLY DELETE:
+• Your entire organization account
+• ALL users in your organization  
+• ALL assets, meal requests, and maintenance records
+• ALL notifications and reports
+• ALL historical data
+
+INSTRUCTIONS:
+1. Enter this verification code ONLY if you are absolutely certain you want to delete your organization
+2. This code is valid for a limited time for security purposes
+3. Once confirmed, ALL DATA WILL BE PERMANENTLY LOST and CANNOT BE RECOVERED
+
+SECURITY NOTICE:
+This verification is required to prevent unauthorized deletion of your organization. If you did not request this deletion, immediately contact our support team and change your account password.
+
+NEED IMMEDIATE ASSISTANCE?
+If this was not requested by you, contact us immediately at resourcehub.contact.info@gmail.com
+
+REMEMBER: This action is PERMANENT and IRREVERSIBLE
+
+Best regards,
+The ResourceHub Security Team
+Your Digital Resource Management Solution`
+        };
+
+        error? emailResult = common:emailClient->sendMessage(deletionEmail);
+        if emailResult is error {
+            return error("Error sending deletion verification code to email");
+        }
+
+        return {
+            message: "Deletion verification code sent successfully. Check your email for the verification code.",
+            warning: "Organization deletion is permanent and irreversible. Proceed with extreme caution."
+        };
+    }
 }
 
 public function startOrganizationSettingsService() returns error? {

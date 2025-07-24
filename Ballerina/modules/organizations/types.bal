@@ -37,3 +37,9 @@ public type Register record {|
     string? org_phone;
     string? org_founded;
 |};
+
+public type DeleteRec record {|
+    string email;
+    int? code = ();
+    string password;
+|};
