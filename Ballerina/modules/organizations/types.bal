@@ -32,10 +32,10 @@ public type Register record {|
     string org_name;
     string email;
     string password;
-    string? org_about;
-    string? org_website;
-    string? org_phone;
-    string? org_founded;
+    string org_about?;
+    string org_website?;
+    string org_phone?;
+    string org_founded?;
 |};
 
 public type DeleteRec record {|

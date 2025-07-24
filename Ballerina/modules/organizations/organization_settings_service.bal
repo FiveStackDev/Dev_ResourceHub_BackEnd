@@ -67,9 +67,9 @@ service /orgsettings on database:mainListener {
         });
 
         if (emailCheckResult.length() > 0 && emailCheckResult[0].count > 0) {
-            return {
+            return http:BadRequest({
                 message: "Email already exists in a organization. Please use a different email address."
-            };
+            }); 
         }
 
         // Step 1: Create the organization first
