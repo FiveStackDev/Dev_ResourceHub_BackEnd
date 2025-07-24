@@ -16,15 +16,15 @@ import ballerina/sql;
 
 service /notification on database:notificationListener {
     // Only admin, manager, and User can view notifications
-    resource function get notification(http:Request req) returns Notification[]|error{
+    resource function get notification(http:Request req) returns Notification[]|error {
         jwt:Payload payload = check common:getValidatedPayload(req);
-        if (!common:hasAnyRole(payload, ["Admin","User","SuperAdmin"])) {
+        if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
         int org_id = check common:getOrgId(payload);
         int user_id = check common:getUserId(payload);
 
-        stream< Notification ,sql:Error?> resultstream = database:dbClient->query(
+        stream<Notification, sql:Error?> resultstream = database:dbClient->query(
             `select n.notification_id, n.user_id, n.type, n.reference_id, n.title, n.message, 
             n.is_read, n.created_at, n.org_id, n.priority, u.username, u.profile_picture_url
             from notification n
@@ -33,7 +33,7 @@ service /notification on database:notificationListener {
             order by n.created_at desc`
         );
         Notification[] notifications = [];
-        check resultstream.forEach(function(Notification notification){
+        check resultstream.forEach(function(Notification notification) {
             notifications.push(notification);
         });
         check resultstream.close(); // Ensure stream is closed
@@ -41,9 +41,9 @@ service /notification on database:notificationListener {
     }
 
     // Only admin and manager can add notifications
-    resource function post addnotification(http:Request req, @http:Payload NotificationInput notificationInput) returns json|error{
+    resource function post addnotification(http:Request req, @http:Payload NotificationInput notificationInput) returns json|error {
         jwt:Payload payload = check common:getValidatedPayload(req);
-        if (!common:hasAnyRole(payload, ["Admin","SuperAdmin"])) {
+        if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to add notifications");
         }
         int org_id = check common:getOrgId(payload);
@@ -60,9 +60,9 @@ service /notification on database:notificationListener {
     }
 
     // Mark notification as read
-    resource function put markread/[int notification_id](http:Request req) returns json|error{
+    resource function put markread/[int notification_id](http:Request req) returns json|error {
         jwt:Payload payload = check common:getValidatedPayload(req);
-        if (!common:hasAnyRole(payload, ["Admin","User","SuperAdmin"])) {
+        if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
         int org_id = check common:getOrgId(payload);
@@ -73,7 +73,7 @@ service /notification on database:notificationListener {
         set is_read = true 
         where notification_id = ${notification_id} and user_id = ${user_id} and org_id = ${org_id}`
         );
-        
+
         if (result.affectedRowCount == 0) {
             return error("Notification not found or you don't have permission to update it");
         }
@@ -83,7 +83,7 @@ service /notification on database:notificationListener {
     // Send maintenance notification to all users in org
     resource function post sendMaintenanceNotification(http:Request req, @http:Payload NotificationInput notificationInput) returns json|error {
         jwt:Payload payload = check common:getValidatedPayload(req);
-        if (!common:hasAnyRole(payload, ["Admin","SuperAdmin"])) {
+        if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to send notifications");
         }
         int org_id = check common:getOrgId(payload);
@@ -113,7 +113,7 @@ service /notification on database:notificationListener {
     // Send asset request notification to selected user
     resource function post sendAssetNotification(http:Request req, @http:Payload NotificationInput notificationInput) returns json|error {
         jwt:Payload payload = check common:getValidatedPayload(req);
-        if (!common:hasAnyRole(payload, ["Admin","SuperAdmin"])) {
+        if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to send notifications");
         }
         int org_id = check common:getOrgId(payload);
@@ -152,7 +152,7 @@ service /notification on database:notificationListener {
         );
         var result = countStream.next();
         int unread = 0;
-        if result is record {| record {| int unread_count; anydata...; |} value; |} {
+        if result is record {|record {|int unread_count; anydata...;|} value;|} {
             unread = result.value.unread_count;
         }
         check countStream.close(); // Ensure stream is closed

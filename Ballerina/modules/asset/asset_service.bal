@@ -1,9 +1,10 @@
+import ResourceHub.common;
+import ResourceHub.database;
+
 import ballerina/http;
-import ballerina/sql;
 import ballerina/io;
 import ballerina/jwt;
-import ResourceHub.database;
-import ResourceHub.common;
+import ballerina/sql;
 
 @http:ServiceConfig {
     cors: {
@@ -13,19 +14,19 @@ import ResourceHub.common;
     }
 }
 
-service /asset on database:mainListener{
+service /asset on database:mainListener {
     // Only admin, manager, and User can view asset details
-    resource function get details(http:Request req) returns Asset[]|error{
+    resource function get details(http:Request req) returns Asset[]|error {
         jwt:Payload payload = check common:getValidatedPayload(req);
-        if (!common:hasAnyRole(payload, ["Admin", "User","SuperAdmin"])) {
+        if (!common:hasAnyRole(payload, ["Admin", "User", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to access this resource");
         }
-        
+
         int orgId = check common:getOrgId(payload);
-        
+
         stream<Asset, sql:Error?> resultStream = database:dbClient->query(`SELECT * FROM assets WHERE org_id = ${orgId}`);
         Asset[] assets = [];
-        check resultStream.forEach(function(Asset asset){
+        check resultStream.forEach(function(Asset asset) {
             assets.push(asset);
         });
         return assets;
@@ -34,12 +35,12 @@ service /asset on database:mainListener{
     // Only admin and manager can add assets
     resource function post add(http:Request req, @http:Payload Asset asset) returns json|error {
         jwt:Payload payload = check common:getValidatedPayload(req);
-        if (!common:hasAnyRole(payload, ["Admin","SuperAdmin"])) {
+        if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to add assets");
         }
-        
+
         int orgId = check common:getOrgId(payload);
-        
+
         sql:ExecutionResult result = check database:dbClient->execute(
             `insert into assets (asset_name, category, quantity, condition_type, location, org_id) 
               values (${asset.asset_name}, ${asset.category}, ${asset.quantity}, ${asset.condition_type}, ${asset.location}, ${orgId})`
@@ -58,12 +59,12 @@ service /asset on database:mainListener{
     // Only admin and manager can update assets
     resource function put details/[int id](http:Request req, @http:Payload Asset asset) returns json|error {
         jwt:Payload payload = check common:getValidatedPayload(req);
-        if (!common:hasAnyRole(payload, ["Admin","SuperAdmin"])) {
+        if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to update assets");
         }
-        
+
         int orgId = check common:getOrgId(payload);
-        
+
         sql:ExecutionResult result = check database:dbClient->execute(`
             UPDATE assets 
             SET asset_name = ${asset.asset_name}, category = ${asset.category}, quantity = ${asset.quantity}, condition_type = ${asset.condition_type}, location = ${asset.location}, is_available = ${asset.is_available} 
@@ -86,9 +87,9 @@ service /asset on database:mainListener{
         if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to delete assets");
         }
-        
+
         int orgId = check common:getOrgId(payload);
-        
+
         sql:ExecutionResult result = check database:dbClient->execute(`
             DELETE FROM assets WHERE asset_id = ${id} AND org_id = ${orgId}
         `);

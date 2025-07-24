@@ -249,16 +249,30 @@ service /dashboard/admin on database:dashboardListener {
             time:Civil dCivil = time:utcToCivil(dUtc);
             string dateKey = string `${dCivil.year}-${dCivil.month < 10 ? "0" : ""}${dCivil.month}-${dCivil.day < 10 ? "0" : ""}${dCivil.day}`;
             dateKeys.push(dateKey);
-            
+
             string dayLabel = "";
             match dCivil.dayOfWeek {
-                time:SUNDAY => { dayLabel = i == 6 ? "Sun (Selected)" : i == 7 ? "Sun (Next Day)" : "Sun"; }
-                time:MONDAY => { dayLabel = i == 6 ? "Mon (Selected)" : i == 7 ? "Mon (Next Day)" : "Mon"; }
-                time:TUESDAY => { dayLabel = i == 6 ? "Tue (Selected)" : i == 7 ? "Tue (Next Day)" : "Tue"; }
-                time:WEDNESDAY => { dayLabel = i == 6 ? "Wed (Selected)" : i == 7 ? "Wed (Next Day)" : "Wed"; }
-                time:THURSDAY => { dayLabel = i == 6 ? "Thu (Selected)" : i == 7 ? "Thu (Next Day)" : "Thu"; }
-                time:FRIDAY => { dayLabel = i == 6 ? "Fri (Selected)" : i == 7 ? "Fri (Next Day)" : "Fri"; }
-                time:SATURDAY => { dayLabel = i == 6 ? "Sat (Selected)" : i == 7 ? "Sat (Next Day)" : "Sat"; }
+                time:SUNDAY => {
+                    dayLabel = i == 6 ? "Sun (Selected)" : i == 7 ? "Sun (Next Day)" : "Sun";
+                }
+                time:MONDAY => {
+                    dayLabel = i == 6 ? "Mon (Selected)" : i == 7 ? "Mon (Next Day)" : "Mon";
+                }
+                time:TUESDAY => {
+                    dayLabel = i == 6 ? "Tue (Selected)" : i == 7 ? "Tue (Next Day)" : "Tue";
+                }
+                time:WEDNESDAY => {
+                    dayLabel = i == 6 ? "Wed (Selected)" : i == 7 ? "Wed (Next Day)" : "Wed";
+                }
+                time:THURSDAY => {
+                    dayLabel = i == 6 ? "Thu (Selected)" : i == 7 ? "Thu (Next Day)" : "Thu";
+                }
+                time:FRIDAY => {
+                    dayLabel = i == 6 ? "Fri (Selected)" : i == 7 ? "Fri (Next Day)" : "Fri";
+                }
+                time:SATURDAY => {
+                    dayLabel = i == 6 ? "Sat (Selected)" : i == 7 ? "Sat (Next Day)" : "Sat";
+                }
             }
             dayLabels.push(dayLabel);
         }
@@ -362,7 +376,7 @@ service /dashboard/admin on database:dashboardListener {
                         "allocated": row.allocated
                     });
                 };
-            
+
             if streamError is error {
                 return error("Database query failed: " + streamError.message());
             }
@@ -583,16 +597,30 @@ service /dashboard/admin on database:dashboardListener {
             time:Civil dCivil = time:utcToCivil(dUtc);
             string dateKey = string `${dCivil.year}-${dCivil.month < 10 ? "0" : ""}${dCivil.month}-${dCivil.day < 10 ? "0" : ""}${dCivil.day}`;
             dateKeys.push(dateKey);
-            
+
             string dayLabel = "";
             match dCivil.dayOfWeek {
-                time:SUNDAY => { dayLabel = i == 6 ? "Sun (Selected)" : i == 7 ? "Sun (Next Day)" : "Sun"; }
-                time:MONDAY => { dayLabel = i == 6 ? "Mon (Selected)" : i == 7 ? "Mon (Next Day)" : "Mon"; }
-                time:TUESDAY => { dayLabel = i == 6 ? "Tue (Selected)" : i == 7 ? "Tue (Next Day)" : "Tue"; }
-                time:WEDNESDAY => { dayLabel = i == 6 ? "Wed (Selected)" : i == 7 ? "Wed (Next Day)" : "Wed"; }
-                time:THURSDAY => { dayLabel = i == 6 ? "Thu (Selected)" : i == 7 ? "Thu (Next Day)" : "Thu"; }
-                time:FRIDAY => { dayLabel = i == 6 ? "Fri (Selected)" : i == 7 ? "Fri (Next Day)" : "Fri"; }
-                time:SATURDAY => { dayLabel = i == 6 ? "Sat (Selected)" : i == 7 ? "Sat (Next Day)" : "Sat"; }
+                time:SUNDAY => {
+                    dayLabel = i == 6 ? "Sun (Selected)" : i == 7 ? "Sun (Next Day)" : "Sun";
+                }
+                time:MONDAY => {
+                    dayLabel = i == 6 ? "Mon (Selected)" : i == 7 ? "Mon (Next Day)" : "Mon";
+                }
+                time:TUESDAY => {
+                    dayLabel = i == 6 ? "Tue (Selected)" : i == 7 ? "Tue (Next Day)" : "Tue";
+                }
+                time:WEDNESDAY => {
+                    dayLabel = i == 6 ? "Wed (Selected)" : i == 7 ? "Wed (Next Day)" : "Wed";
+                }
+                time:THURSDAY => {
+                    dayLabel = i == 6 ? "Thu (Selected)" : i == 7 ? "Thu (Next Day)" : "Thu";
+                }
+                time:FRIDAY => {
+                    dayLabel = i == 6 ? "Fri (Selected)" : i == 7 ? "Fri (Next Day)" : "Fri";
+                }
+                time:SATURDAY => {
+                    dayLabel = i == 6 ? "Sat (Selected)" : i == 7 ? "Sat (Next Day)" : "Sat";
+                }
             }
             dayLabels.push(dayLabel);
         }
@@ -712,16 +740,30 @@ service /dashboard/admin on database:dashboardListener {
             time:Civil dCivil = time:utcToCivil(dUtc);
             string dateKey = string `${dCivil.year}-${dCivil.month < 10 ? "0" : ""}${dCivil.month}-${dCivil.day < 10 ? "0" : ""}${dCivil.day}`;
             dateKeys.push(dateKey);
-            
+
             string dayLabel = "";
             match dCivil.dayOfWeek {
-                time:SUNDAY => { dayLabel = i == 6 ? "Sun (Selected)" : i == 7 ? "Sun (Next Day)" : "Sun"; }
-                time:MONDAY => { dayLabel = i == 6 ? "Mon (Selected)" : i == 7 ? "Mon (Next Day)" : "Mon"; }
-                time:TUESDAY => { dayLabel = i == 6 ? "Tue (Selected)" : i == 7 ? "Tue (Next Day)" : "Tue"; }
-                time:WEDNESDAY => { dayLabel = i == 6 ? "Wed (Selected)" : i == 7 ? "Wed (Next Day)" : "Wed"; }
-                time:THURSDAY => { dayLabel = i == 6 ? "Thu (Selected)" : i == 7 ? "Thu (Next Day)" : "Thu"; }
-                time:FRIDAY => { dayLabel = i == 6 ? "Fri (Selected)" : i == 7 ? "Fri (Next Day)" : "Fri"; }
-                time:SATURDAY => { dayLabel = i == 6 ? "Sat (Selected)" : i == 7 ? "Sat (Next Day)" : "Sat"; }
+                time:SUNDAY => {
+                    dayLabel = i == 6 ? "Sun (Selected)" : i == 7 ? "Sun (Next Day)" : "Sun";
+                }
+                time:MONDAY => {
+                    dayLabel = i == 6 ? "Mon (Selected)" : i == 7 ? "Mon (Next Day)" : "Mon";
+                }
+                time:TUESDAY => {
+                    dayLabel = i == 6 ? "Tue (Selected)" : i == 7 ? "Tue (Next Day)" : "Tue";
+                }
+                time:WEDNESDAY => {
+                    dayLabel = i == 6 ? "Wed (Selected)" : i == 7 ? "Wed (Next Day)" : "Wed";
+                }
+                time:THURSDAY => {
+                    dayLabel = i == 6 ? "Thu (Selected)" : i == 7 ? "Thu (Next Day)" : "Thu";
+                }
+                time:FRIDAY => {
+                    dayLabel = i == 6 ? "Fri (Selected)" : i == 7 ? "Fri (Next Day)" : "Fri";
+                }
+                time:SATURDAY => {
+                    dayLabel = i == 6 ? "Sat (Selected)" : i == 7 ? "Sat (Next Day)" : "Sat";
+                }
             }
             dayLabels.push(dayLabel);
         }

@@ -1,20 +1,19 @@
+import ballerina/http;
 import ballerina/io;
 import ballerina/task;
-import ballerina/http;
 
 class WeeklyJob {
     *task:Job;
+
     public function execute() {
         do {
 
             // Use the actual report generation endpoint
             http:Client reportClient = check new ("https://e7f2b9c3-7f86-4a6b-91f9-2ae1c2e1c631-dev.e1-us-east-azure.choreoapis.dev/default/ballerina/report-a89/v1.0");
-            
+
             // Alternatively, if running locally, you can use:
             // http:Client reportClient = check new ("http://localhost:9091/report");
 
-
-            
             // Generate meal report
             do {
                 http:Response _ = check reportClient->get("/generateWeeklyMeal");
@@ -38,7 +37,7 @@ class WeeklyJob {
             } on fail error e {
                 io:println("Error generating weekly maintenance report: ", e.toString());
             }
-            
+
             io:println("🎉 All weekly reports completed successfully!");
         } on fail error e {
             io:println("Error occurred while calling weekly report endpoints: ", e.toString());
@@ -49,15 +48,16 @@ class WeeklyJob {
 // Biweekly job: calls biweekly endpoints
 class BiweeklyJob {
     *task:Job;
+
     public function execute() {
         do {
-            
+
             // Use the actual report generation endpoint
             http:Client reportClient = check new ("https://e7f2b9c3-7f86-4a6b-91f9-2ae1c2e1c631-dev.e1-us-east-azure.choreoapis.dev/default/ballerina/report-a89/v1.0");
-            
+
             // Alternatively, if running locally, you can use:
             // http:Client reportClient = check new ("http://localhost:9091/report");
-            
+
             // Generate meal report
             do {
                 http:Response _ = check reportClient->get("/generateBiweeklyMeal");
@@ -81,7 +81,7 @@ class BiweeklyJob {
             } on fail error e {
                 io:println("Error generating biweekly maintenance report: ", e.toString());
             }
-            
+
             io:println("🎉 All biweekly reports completed successfully!");
         } on fail error e {
             io:println("Error occurred while calling biweekly report endpoints: ", e.toString());
@@ -92,15 +92,16 @@ class BiweeklyJob {
 // Monthly job: calls monthly endpoints
 class MonthlyJob {
     *task:Job;
+
     public function execute() {
         do {
-            
+
             // Use the actual report generation endpoint
             http:Client reportClient = check new ("https://e7f2b9c3-7f86-4a6b-91f9-2ae1c2e1c631-dev.e1-us-east-azure.choreoapis.dev/default/ballerina/report-a89/v1.0");
-            
+
             // Alternatively, if running locally, you can use:
             // http:Client reportClient = check new ("http://localhost:9091/report");
-            
+
             // Generate meal report
             do {
                 http:Response _ = check reportClient->get("/generateMonthlyMeal");
@@ -124,7 +125,7 @@ class MonthlyJob {
             } on fail error e {
                 io:println("Error generating monthly maintenance report: ", e.toString());
             }
-            
+
             io:println("🎉 All monthly reports completed successfully!");
         } on fail error e {
             io:println("Error occurred while calling monthly report endpoints: ", e.toString());

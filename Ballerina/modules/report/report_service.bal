@@ -1,10 +1,11 @@
+import ResourceHub.common;
+import ResourceHub.database;
+
 import ballerina/email;
 import ballerina/http;
 import ballerina/io;
 import ballerina/mime;
 import ballerina/sql;
-import ResourceHub.database;
-import ResourceHub.common;
 
 configurable string PDFSHIFT_API_KEY = ?;
 
@@ -14,12 +15,12 @@ service /report on database:reportListener {
         check generateAndSendReport("/weeklymealdetails", "Weekly Meal Events Report", "Weekly_Meal_Events_Report.pdf", "meal", "weekly");
         io:println("Weekly Meal Report generated and sent successfully");
     }
-    
+
     resource function get generateBiweeklyMeal() returns error? {
         check generateAndSendReport("/biweeklymealdetails", "Biweekly Meal Events Report", "Biweekly_Meal_Events_Report.pdf", "meal", "Bi-weekly");
         io:println("Biweekly Meal Report generated and sent successfully");
     }
-    
+
     resource function get generateMonthlyMeal() returns error? {
         check generateAndSendReport("/monthlymealdetails", "Monthly Meal Events Report", "Monthly_Meal_Events_Report.pdf", "meal", "monthly");
         io:println("Monthly Meal Report generated and sent successfully");
@@ -30,12 +31,12 @@ service /report on database:reportListener {
         check generateAndSendReport("/weeklyassetrequestdetails", "Weekly Assets Report", "Weekly_Assets_Report.pdf", "asset", "weekly");
         io:println("Weekly Asset Report generated and sent successfully");
     }
-    
+
     resource function get generateBiweeklyAsset() returns error? {
         check generateAndSendReport("/biweeklyassetrequestdetails", "Biweekly Assets Report", "Biweekly_Assets_Report.pdf", "asset", "Bi-weekly");
         io:println("Biweekly Asset Report generated and sent successfully");
     }
-    
+
     resource function get generateMonthlyAsset() returns error? {
         check generateAndSendReport("/monthlyassetrequestdetails", "Monthly Assets Report", "Monthly_Assets_Report.pdf", "asset", "monthly");
         io:println("Monthly Asset Report generated and sent successfully");
@@ -46,12 +47,12 @@ service /report on database:reportListener {
         check generateAndSendReport("/weeklymaintenancedetails", "Weekly Maintenances Report", "Weekly_Maintenances_Report.pdf", "maintenance", "weekly");
         io:println("✅ Weekly Maintenance Report generated and sent successfully");
     }
-    
+
     resource function get generateBiweeklyMaintenance() returns error? {
         check generateAndSendReport("/biweeklymaintenancedetails", "Biweekly Maintenances Report", "Biweekly_Maintenances_Report.pdf", "maintenance", "Bi-weekly");
         io:println("✅ Biweekly Maintenance Report generated and sent successfully");
     }
-    
+
     resource function get generateMonthlyMaintenance() returns error? {
         check generateAndSendReport("/monthlymaintenancedetails", "Monthly Maintenances Report", "Monthly_Maintenances_Report.pdf", "maintenance", "monthly");
         io:println("✅ Monthly Maintenance Report generated and sent successfully");
@@ -62,9 +63,9 @@ function generateAndSendReport(string endpoint, string reportTitle, string fileN
 
     // First, get all organizations that have scheduled reports for this type and frequency
     sql:ParameterizedQuery orgQuery = `SELECT DISTINCT s.org_id FROM schedulereports s WHERE s.report_name = ${reportName} AND s.frequency = ${frequency}`;
-    stream<record {| int org_id; |}, error?> orgStream = database:dbClient->query(orgQuery);
+    stream<record {|int org_id;|}, error?> orgStream = database:dbClient->query(orgQuery);
     int[] orgIds = [];
-    error? orgError = orgStream.forEach(function(record {| int org_id; |} row) {
+    error? orgError = orgStream.forEach(function(record {|int org_id;|} row) {
         orgIds.push(row.org_id);
     });
     check orgError;
@@ -74,7 +75,7 @@ function generateAndSendReport(string endpoint, string reportTitle, string fileN
     foreach int orgId in orgIds {
         check generateAndSendReportForOrg(endpoint, reportTitle, fileName, reportName, frequency, orgId);
     }
-    
+
     return;
 }
 
@@ -84,10 +85,9 @@ function generateAndSendReportForOrg(string endpoint, string reportTitle, string
 
     // Use the actual report generation endpoint
     http:Client dataClient = check new ("https://e7f2b9c3-7f86-4a6b-91f9-2ae1c2e1c631-dev.e1-us-east-azure.choreoapis.dev/default/ballerina/schedulereports-4d0/v1.0");
-    
+
     // Alternatively, if running locally, you can use:
     // http:Client dataClient = check new ("http://localhost:9091/schedulereports");
-
 
     http:Response dataResp = check dataClient->get(endpoint + "/" + orgId.toString());
     json data = check dataResp.getJsonPayload();
@@ -148,9 +148,9 @@ function generateAndSendReportForOrg(string endpoint, string reportTitle, string
 
     // 4. Fetch user emails from DB for this report type, frequency, and organization
     sql:ParameterizedQuery pq = `SELECT u.email FROM schedulereports s JOIN users u ON s.user_id = u.user_id WHERE s.report_name = ${reportName} AND s.frequency = ${frequency} AND s.org_id = ${orgId}`;
-    stream<record {| string email; |}, error?> emailStream = database:dbClient->query(pq);
+    stream<record {|string email;|}, error?> emailStream = database:dbClient->query(pq);
     string[] emailList = [];
-    error? e = emailStream.forEach(function(record {| string email; |} row) {
+    error? e = emailStream.forEach(function(record {|string email;|} row) {
         emailList.push(row.email);
     });
     check e;

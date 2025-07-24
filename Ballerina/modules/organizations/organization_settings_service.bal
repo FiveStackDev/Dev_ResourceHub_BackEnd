@@ -1,11 +1,12 @@
+import ResourceHub.common;
+import ResourceHub.database;
+import ResourceHub.user;
+
 import ballerina/email;
 import ballerina/http;
+import ballerina/io;
 import ballerina/jwt;
 import ballerina/sql;
-import ResourceHub.database;
-import ResourceHub.common;
-import ResourceHub.user;
-import ballerina/io;
 
 // CORS configuration for client access
 @http:ServiceConfig {
@@ -27,7 +28,7 @@ service /orgsettings on database:mainListener {
         }
 
         int userOrgId = check common:getOrgId(payload);
-        
+
         // Ensure users can only access their own organization's data
         if (orgid != userOrgId) {
             return error("Forbidden: You can only access your own organization's details");
@@ -53,15 +54,15 @@ service /orgsettings on database:mainListener {
         return profiles;
     }
 
-        // Create a new organization - admin or authorized users can create organizations
+    // Create a new organization - admin or authorized users can create organizations
     resource function post register(@http:Payload Register register) returns json|error {
-        
+
         // Check if email already exists in the system (no user_id yet, so just check for any user with this email)
-        stream<record {| int count; |}, sql:Error?> emailCheckStream = 
+        stream<record {|int count;|}, sql:Error?> emailCheckStream =
             database:dbClient->query(`SELECT COUNT(*) as count FROM users WHERE email = ${register.email}`);
 
-        record {| int count; |}[] emailCheckResult = [];
-        check emailCheckStream.forEach(function(record {| int count; |} result) {
+        record {|int count;|}[] emailCheckResult = [];
+        check emailCheckStream.forEach(function(record {|int count;|} result) {
             emailCheckResult.push(result);
         });
 
@@ -77,13 +78,13 @@ service /orgsettings on database:mainListener {
             VALUES (${register.org_name}, ${register.email}, ${register.org_about ?: ""}, 
                     ${register.org_website ?: ""}, ${register.org_phone ?: ""}, ${register.org_founded ?: ""}, NOW(), NOW())
         `);
-        
+
         // Step 2: Get the newly created organization ID
         int|string? orgId = result.lastInsertId;
         if (orgId is () || orgId is string) {
             return error("Failed to get organization ID after creation");
         }
-        
+
         // Step 3: Hash the password
         string|error hashedPassword = common:hashPassword(register.password);
         if (hashedPassword is error) {
@@ -105,7 +106,6 @@ service /orgsettings on database:mainListener {
         }
     }
 
-
     // Update organization profile - admin or authorized users can update organization details
     resource function put profile/[int orgid](http:Request req, @http:Payload OrgProfile profile) returns json|error {
         jwt:Payload payload = check common:getValidatedPayload(req);
@@ -116,7 +116,7 @@ service /orgsettings on database:mainListener {
         }
 
         int userOrgId = check common:getOrgId(payload);
-        
+
         // Ensure users can only update their own organization's data
         if (orgid != userOrgId) {
             return error("Forbidden: You can only update your own organization's profile");
@@ -152,7 +152,7 @@ service /orgsettings on database:mainListener {
         }
 
         int userOrgId = check common:getOrgId(payload);
-        
+
         // Ensure users can only update their own organization's data
         if (orgid != userOrgId) {
             return error("Forbidden: You can only update your own organization's email");
@@ -179,18 +179,18 @@ service /orgsettings on database:mainListener {
         }
 
         int userOrgId = check common:getOrgId(payload);
-        
+
         // Ensure SuperAdmin can only delete their own organization
         if (orgid != userOrgId) {
             return error("Forbidden: You can only delete your own organization");
         }
 
         // Check if organization exists before attempting deletion
-        stream<record {| int count; |}, sql:Error?> orgCheckStream = 
+        stream<record {|int count;|}, sql:Error?> orgCheckStream =
             database:dbClient->query(`SELECT COUNT(*) as count FROM organizations WHERE org_id = ${orgid}`);
 
-        record {| int count; |}[] orgCheckResult = [];
-        check orgCheckStream.forEach(function(record {| int count; |} result) {
+        record {|int count;|}[] orgCheckResult = [];
+        check orgCheckStream.forEach(function(record {|int count;|} result) {
             orgCheckResult.push(result);
         });
 
