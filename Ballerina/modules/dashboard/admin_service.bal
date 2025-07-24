@@ -35,9 +35,9 @@ service /dashboard/admin on database:dashboardListener {
         |} statsCounts = check database:dbClient->queryRow(`
             SELECT
                 (SELECT COUNT(user_id) FROM users WHERE org_id = ${orgId}) AS user_count,
-                (SELECT COUNT(requestedmeal_id) FROM requestedmeals WHERE org_id = ${orgId}) AS mealevents_count,
-                (SELECT COUNT(requestedasset_id) FROM requestedassets WHERE org_id = ${orgId}) AS assetrequests_count,
-                (SELECT COUNT(maintenance_id) FROM maintenance WHERE org_id = ${orgId}) AS maintenance_count
+                (SELECT COUNT(requestedmeal_id) FROM requestedmeals WHERE org_id = ${orgId} AND DATE(meal_request_date) = CURDATE()) AS mealevents_count,
+                (SELECT COUNT(requestedasset_id) FROM requestedassets WHERE org_id = ${orgId} AND DATE(submitted_date) = CURDATE()) AS assetrequests_count,
+                (SELECT COUNT(maintenance_id) FROM maintenance WHERE org_id = ${orgId} AND DATE(submitted_date) = CURDATE()) AS maintenance_count
         `);
 
         int userCount = statsCounts.user_count;
@@ -49,13 +49,13 @@ service /dashboard/admin on database:dashboardListener {
         time:Civil civilTime = time:utcToCivil(time:utcNow());
         int currentMonth = civilTime.month;
         string[] allMonthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        
+
         int startMonthIndex = (currentMonth - 1 - 11 + 12) % 12;
         string[] monthLabels = [];
-        foreach int i in 0...11 {
+        foreach int i in 0 ... 11 {
             monthLabels.push(allMonthLabels[(startMonthIndex + i) % 12]);
         }
-        
+
         // EACH STATCARD POPUP OPERATIONS
         // Query to get user count by month
         stream<MonthlyUserData, sql:Error?> monthlyUserStream = database:dbClient->query(
@@ -80,7 +80,7 @@ service /dashboard/admin on database:dashboardListener {
             monthlyUserCountsAll[row.month - 1] = row.count;
         }
         int[] monthlyUserCounts = [];
-        foreach int i in 0...11 {
+        foreach int i in 0 ... 11 {
             monthlyUserCounts.push(monthlyUserCountsAll[(startMonthIndex + i) % 12]);
         }
 
@@ -107,7 +107,7 @@ service /dashboard/admin on database:dashboardListener {
             monthlyMealCountsAll[row.month - 1] = row.count;
         }
         int[] monthlyMealCounts = [];
-        foreach int i in 0...11 {
+        foreach int i in 0 ... 11 {
             monthlyMealCounts.push(monthlyMealCountsAll[(startMonthIndex + i) % 12]);
         }
 
@@ -134,7 +134,7 @@ service /dashboard/admin on database:dashboardListener {
             monthlyAssetRequestCountsAll[row.month - 1] = row.count;
         }
         int[] monthlyAssetRequestCounts = [];
-        foreach int i in 0...11 {
+        foreach int i in 0 ... 11 {
             monthlyAssetRequestCounts.push(monthlyAssetRequestCountsAll[(startMonthIndex + i) % 12]);
         }
 
@@ -161,7 +161,7 @@ service /dashboard/admin on database:dashboardListener {
             monthlyMaintenanceCountsAll[row.month - 1] = row.count;
         }
         int[] monthlyMaintenanceCounts = [];
-        foreach int i in 0...11 {
+        foreach int i in 0 ... 11 {
             monthlyMaintenanceCounts.push(monthlyMaintenanceCountsAll[(startMonthIndex + i) % 12]);
         }
 
@@ -175,21 +175,21 @@ service /dashboard/admin on database:dashboardListener {
                 "monthLabels": monthLabels
             },
             {
-                "title": "Meals Served",
+                "title": "Today's Meals",
                 "value": mealEventsCount,
                 "icon": "Utensils",
                 "monthlyData": monthlyMealCounts,
                 "monthLabels": monthLabels
             },
             {
-                "title": "Resources",
+                "title": "Today's Resources",
                 "value": assetRequestsCount,
                 "icon": "Box",
                 "monthlyData": monthlyAssetRequestCounts,
                 "monthLabels": monthLabels
             },
             {
-                "title": "Services",
+                "title": "Today's Services",
                 "value": maintenanceCount,
                 "icon": "Wrench",
                 "monthlyData": monthlyMaintenanceCounts,
@@ -249,20 +249,36 @@ service /dashboard/admin on database:dashboardListener {
         // Build 8 consecutive dates (YYYY-MM-DD) and day labels
         string[] dateKeys = [];
         string[] dayLabels = [];
-        foreach int i in 0...7 {
+        foreach int i in 0 ... 7 {
             time:Utc dUtc = time:utcAddSeconds(startUtc, <time:Seconds>(i * secondsInDay));
             time:Civil dCivil = time:utcToCivil(dUtc);
             string dateKey = string `${dCivil.year}-${dCivil.month < 10 ? "0" : ""}${dCivil.month}-${dCivil.day < 10 ? "0" : ""}${dCivil.day}`;
             dateKeys.push(dateKey);
             match dCivil.dayOfWeek {
-                time:SUNDAY => { dayLabels.push("Sun"); }
-                time:MONDAY => { dayLabels.push("Mon"); }
-                time:TUESDAY => { dayLabels.push("Tue"); }
-                time:WEDNESDAY => { dayLabels.push("Wed"); }
-                time:THURSDAY => { dayLabels.push("Thu"); }
-                time:FRIDAY => { dayLabels.push("Fri"); }
-                time:SATURDAY => { dayLabels.push("Sat"); }
-                _ => { dayLabels.push(""); }
+                time:SUNDAY => {
+                    dayLabels.push("Sun");
+                }
+                time:MONDAY => {
+                    dayLabels.push("Mon");
+                }
+                time:TUESDAY => {
+                    dayLabels.push("Tue");
+                }
+                time:WEDNESDAY => {
+                    dayLabels.push("Wed");
+                }
+                time:THURSDAY => {
+                    dayLabels.push("Thu");
+                }
+                time:FRIDAY => {
+                    dayLabels.push("Fri");
+                }
+                time:SATURDAY => {
+                    dayLabels.push("Sat");
+                }
+                _ => {
+                    dayLabels.push("");
+                }
             }
         }
 
@@ -365,7 +381,6 @@ service /dashboard/admin on database:dashboardListener {
 
         int orgId = check common:getOrgId(payload);
 
-
         // Get date from query param, default to today if not provided
 
         map<string[]> queryParams = req.getQueryParams();
@@ -382,7 +397,7 @@ service /dashboard/admin on database:dashboardListener {
         }
 
         // Query to get meal type distribution for the selected date
-        stream<record {| string mealtype; int count; |}, sql:Error?> mealTypeStream = database:dbClient->query(
+        stream<record {|string mealtype; int count;|}, sql:Error?> mealTypeStream = database:dbClient->query(
             `SELECT mealtypes.mealtype_name AS mealtype, 
                     COUNT(requestedmeals.requestedmeal_id) AS count
              FROM mealtypes
@@ -393,7 +408,7 @@ service /dashboard/admin on database:dashboardListener {
              WHERE mealtypes.org_id = ${orgId}
              GROUP BY mealtypes.mealtype_name
              ORDER BY mealtypes.mealtype_name`,
-            typeof({mealtype: "", count: 0})
+            typeof ({mealtype: "", count: 0})
         );
 
         // Convert stream to array
@@ -411,7 +426,7 @@ service /dashboard/admin on database:dashboardListener {
             "data": result
         };
     }
-    
+
     resource function options .() returns http:Ok {
         return http:OK;
     }
