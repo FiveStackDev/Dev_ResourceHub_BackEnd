@@ -67,16 +67,18 @@ service /orgsettings on database:mainListener {
         });
 
         if (emailCheckResult.length() > 0 && emailCheckResult[0].count > 0) {
-            return http:BadRequest({
-                message: "Email already exists in a organization. Please use a different email address."
-            }); 
+            return { 
+                status: 400, 
+                body: { 
+                    message: "Email already exists in a organization. Please use a different email address."
+                }
+            };
         }
 
         // Step 1: Create the organization first
         sql:ExecutionResult result = check database:dbClient->execute(`
             INSERT INTO organizations (org_name, org_email, org_about, org_website, org_phone, org_founded, created_at, updated_at)
-            VALUES (${register.org_name}, ${register.email}, ${register.org_about ?: ""}, 
-                    ${register.org_website ?: ""}, ${register.org_phone ?: ""}, ${register.org_founded ?: ""}, NOW(), NOW())
+            VALUES (${register.org_name}, ${register.email}, "", "", "", "", NOW(), NOW())
         `);
 
         // Step 2: Get the newly created organization ID
