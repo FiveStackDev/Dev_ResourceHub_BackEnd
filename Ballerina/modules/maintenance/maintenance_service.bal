@@ -5,6 +5,7 @@ import ballerina/http;
 import ballerina/io;
 import ballerina/jwt;
 import ballerina/sql;
+import ballerina/time;
 
 @http:ServiceConfig {
     cors: {
@@ -87,10 +88,11 @@ service /maintenance on database:mainListener {
         
         int orgId = check common:getOrgId(payload);
         
+        string currentTimestamp = time:utcToString(time:utcNow());
         sql:ExecutionResult result = check database:dbClient->execute(`
             INSERT INTO maintenance (user_id, name, description, priority_level, status, submitted_date, org_id)
             VALUES (${maintenance.user_id}, ${maintenance.name ?: ""}, ${maintenance.description}, 
-                    ${maintenance.priorityLevel}, 'Pending', NOW(), ${orgId})
+                    ${maintenance.priorityLevel}, 'Pending', ${currentTimestamp}, ${orgId})
         `);
         if (result.affectedRowCount == 0) {
             return {message: "Failed to add maintenance request"};

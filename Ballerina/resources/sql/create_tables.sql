@@ -4,7 +4,13 @@ CREATE TABLE organizations (
     org_name VARCHAR(50),
     org_address VARCHAR(255),
     org_logo TEXT,
-    org_email VARCHAR(50)
+    org_email VARCHAR(50),
+    org_about TEXT,
+    org_website VARCHAR(255),
+    org_phone VARCHAR(50),
+    org_founded VARCHAR(20),
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
 );
 
 -- Users Table
