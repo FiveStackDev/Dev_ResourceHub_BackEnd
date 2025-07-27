@@ -12,8 +12,8 @@ import ballerina/sql;
 @http:ServiceConfig {
     cors: {
         allowOrigins: ["http://localhost:5173", "*"],
-        allowMethods: ["GET", "POST", "PUT"" +
-       all"owHeaders: ["Content-Type", "Authorization"]
+        allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allowHeaders: ["Content-Type", "Authorization"]
     }
 }
 service /orgsettings on database:mainListener {
@@ -55,7 +55,7 @@ service /orgsettings on database:mainListener {
     }
 
     // Create a new organization - admin or authorized users can create organizations
-    resource function post register(@http:Payload Register register) returns json | error {
+    resource function post register(@http:Payload Register register) returns json|error {
 
         // Check if email already exists in the system (no user_id yet, so just check for any user with this email)
         stream<record {|int count;|}, sql:Error?> emailCheckStream =
