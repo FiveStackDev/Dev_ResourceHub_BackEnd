@@ -102,6 +102,7 @@ CREATE TABLE maintenance (
     priority_level VARCHAR(50),
     status VARCHAR(50) DEFAULT 'Pending',
     submitted_date DATE NOT NULL,
+    category VARCHAR(50),
     org_id INT,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE
