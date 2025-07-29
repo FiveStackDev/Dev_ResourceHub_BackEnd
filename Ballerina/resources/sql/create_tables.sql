@@ -46,6 +46,14 @@ CREATE TABLE mealtypes (
     FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE
 );
 
+CREATE TABLE mealtime_mealtype (
+    mealtime_id INT,
+    mealtype_id INT,
+    PRIMARY KEY (mealtime_id, mealtype_id),
+    FOREIGN KEY (mealtime_id) REFERENCES mealtimes(mealtime_id) ON DELETE CASCADE,
+    FOREIGN KEY (mealtype_id) REFERENCES mealtypes(mealtype_id) ON DELETE CASCADE
+);
+
 -- Requested Meals Table
 CREATE TABLE requestedmeals (
     requestedmeal_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -102,6 +110,7 @@ CREATE TABLE maintenance (
     priority_level VARCHAR(50),
     status VARCHAR(50) DEFAULT 'Pending',
     submitted_date DATE NOT NULL,
+    category VARCHAR(50)
     org_id INT,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE
@@ -133,10 +142,3 @@ CREATE TABLE schedulereports (
     FOREIGN KEY (org_id) REFERENCES organizations(org_id) ON DELETE CASCADE
 );
 
-CREATE TABLE mealtime_mealtype (
-    mealtime_id INT,
-    mealtype_id INT,
-    PRIMARY KEY (mealtime_id, mealtype_id),
-    FOREIGN KEY (mealtime_id) REFERENCES mealtimes(mealtime_id) ON DELETE CASCADE,
-    FOREIGN KEY (mealtype_id) REFERENCES mealtypes(mealtype_id) ON DELETE CASCADE
-);

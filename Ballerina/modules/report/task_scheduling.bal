@@ -82,7 +82,7 @@ class BiweeklyJob {
                 io:println("Error generating biweekly maintenance report: ", e.toString());
             }
 
-            io:println("🎉 All biweekly reports completed successfully!");
+            io:println("All biweekly reports completed successfully!");
         } on fail error e {
             io:println("Error occurred while calling biweekly report endpoints: ", e.toString());
         }
