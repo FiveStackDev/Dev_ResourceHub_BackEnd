@@ -33,6 +33,7 @@ service /maintenance on database:mainListener {
             m.priority_level as priorityLevel,
             m.status,
             m.submitted_date,
+            m.category,
             u.profile_picture_url as profilePicture,
             u.username,
             m.org_id
@@ -64,6 +65,7 @@ service /maintenance on database:mainListener {
             m.priority_level as priorityLevel,
             m.status,
             m.submitted_date,
+            m.category,
             u.profile_picture_url as profilePicture,
             u.username,
             m.org_id
@@ -88,9 +90,9 @@ service /maintenance on database:mainListener {
         int orgId = check common:getOrgId(payload);
 
         sql:ExecutionResult result = check database:dbClient->execute(`
-            INSERT INTO maintenance (user_id, name, description, priority_level, status, submitted_date, org_id)
-            VALUES (${maintenance.user_id}, ${maintenance.name ?: ""}, ${maintenance.description}, 
-                    ${maintenance.priorityLevel}, 'Pending', NOW(), ${orgId})
+            INSERT INTO maintenance (user_id, name, description, priority_level, status, submitted_date, org_id,category)
+            VALUES (${maintenance.user_id}, ${maintenance.name}, ${maintenance.description}, 
+                    ${maintenance.priorityLevel}, 'Pending', NOW(), ${orgId}, ${maintenance.category})
         `);
         if (result.affectedRowCount == 0) {
             return {message: "Failed to add maintenance request"};
@@ -130,7 +132,8 @@ service /maintenance on database:mainListener {
             SET name = ${maintenance.name ?: ""}, 
                 description = ${maintenance.description}, 
                 priority_level = ${maintenance.priorityLevel}, 
-                status = ${maintenance.status ?: "pending"}
+                status = ${maintenance.status ?: "pending"},
+                category = ${maintenance.category}
             WHERE maintenance_id = ${id} AND org_id = ${orgId}
         `);
         if (result.affectedRowCount == 0) {

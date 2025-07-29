@@ -19,6 +19,7 @@ public type Notification record {|
 // Input type for creating notifications
 public type NotificationInput record {|
     int user_id?;
+    string recipient= "all";
     string 'type;
     int reference_id?;
     string title?;
