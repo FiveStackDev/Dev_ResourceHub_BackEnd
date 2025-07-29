@@ -86,12 +86,26 @@ service /notification on database:notificationListener {
         if (!common:hasAnyRole(payload, ["Admin", "SuperAdmin"])) {
             return error("Forbidden: You do not have permission to send notifications");
         }
+
+        string recipient = notificationInput.recipient; // "User", "Admin", or "All"
+
         int org_id = check common:getOrgId(payload);
-        // Get all user IDs in org
-        stream<record {int user_id;}, sql:Error?> userStream = database:dbClient->query(
-            `select user_id from users where org_id = ${org_id}`
-        );
+
+        sql:ParameterizedQuery finalQuery;
+        if (recipient == "User") {
+            finalQuery = `SELECT user_id FROM users WHERE org_id = ${org_id} AND usertype = 'User'`;
+        } else if (recipient == "Admin") {
+            finalQuery = `SELECT user_id FROM users WHERE org_id = ${org_id} AND usertype IN ('Admin', 'SuperAdmin')`;
+        } else if (recipient == "All") {
+            finalQuery = `SELECT user_id FROM users WHERE org_id = ${org_id}`;
+        } else {
+            return error("Invalid recipient type");
+        }
+
+        stream<record {int user_id;}, sql:Error?> userStream = database:dbClient->query(finalQuery);
+
         int count = 0;
+
         error? resultStatus = userStream.forEach(function(record {int user_id;} userRec) {
             // For large orgs, consider batching these inserts instead of one-by-one
             var result = database:dbClient->execute(`
@@ -103,6 +117,7 @@ service /notification on database:notificationListener {
                 count = count + (result.affectedRowCount ?: 0);
             }
         });
+
         check userStream.close(); // Ensure stream is closed
         if resultStatus is error {
             return {"message": "Failed to send maintenance notification"};
