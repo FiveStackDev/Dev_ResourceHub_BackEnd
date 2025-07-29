@@ -6,6 +6,7 @@ public type Maintenance record {|
     int user_id;
     string? name;
     string description;
+    string category;
     string priorityLevel;
     string status?;
     string submitted_date?;

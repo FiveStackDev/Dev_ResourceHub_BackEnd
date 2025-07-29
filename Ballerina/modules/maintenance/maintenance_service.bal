@@ -91,8 +91,8 @@ service /maintenance on database:mainListener {
 
         sql:ExecutionResult result = check database:dbClient->execute(`
             INSERT INTO maintenance (user_id, name, description, priority_level, status, submitted_date, org_id,category)
-            VALUES (${maintenance.user_id}, ${maintenance.name ?: ""}, ${maintenance.description}, 
-                    ${maintenance.priorityLevel}, 'Pending', NOW(), ${orgId}, ${orgId}, ${maintenance.category})
+            VALUES (${maintenance.user_id}, ${maintenance.name}, ${maintenance.description}, 
+                    ${maintenance.priorityLevel}, 'Pending', NOW(), ${orgId}, ${maintenance.category})
         `);
         if (result.affectedRowCount == 0) {
             return {message: "Failed to add maintenance request"};
