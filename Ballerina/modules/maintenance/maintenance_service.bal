@@ -40,6 +40,7 @@ service /maintenance on database:mainListener {
             FROM maintenance m
             JOIN users u ON m.user_id = u.user_id
             WHERE m.org_id = ${orgId}
+            order by m.submitted_date asc;
         `);
         Maintenance[] maintenances = [];
         check resultStream.forEach(function(Maintenance maintenance) {
@@ -72,6 +73,7 @@ service /maintenance on database:mainListener {
             FROM maintenance m
             JOIN users u ON m.user_id = u.user_id
             WHERE m.user_id = ${user_id} AND m.org_id = ${orgId}
+            order by m.submitted_date asc;
         `);
         Maintenance[] maintenances = [];
         check resultStream.forEach(function(Maintenance maintenance) {
