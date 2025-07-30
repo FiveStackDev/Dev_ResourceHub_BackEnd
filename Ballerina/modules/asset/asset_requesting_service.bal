@@ -162,7 +162,7 @@ service /assetrequest on database:mainListener {
         // Check if status is changing from non-Accepted to Accepted or from Accepted to non-Accepted
         string newStatus = assetrequest.status ?: "Pending";
         boolean isApproving = currentReq.status != "Accepted" && newStatus == "Accepted";
-        boolean isReturning = currentReq.status == "Accepted" && newStatus != "Accepted";
+        boolean isReturning = currentReq.status == "Accepted" && newStatus == "Handovered";
 
         // If approving, check and reduce asset quantity
         if isApproving {
@@ -186,15 +186,15 @@ service /assetrequest on database:mainListener {
             record {|int quantity;|} assetQty = <record {|int quantity;|}>assetQuantity;
 
             // Check if there's enough quantity
-            if assetQty.quantity < currentReq.quantity {
-                return error("Not enough quantity available. Available: " + assetQty.quantity.toString() + ", Requested: " + currentReq.quantity.toString() + ". Error Code: INSUFFICIENT_QUANTITY_3819");
+            if assetQty.quantity < assetrequest.quantity {
+                return error("Not enough quantity available. Available: " + assetQty.quantity.toString() + ", Requested: " + assetrequest.quantity.toString());
             }
 
             // Try to reduce the asset quantity
             do {
                 sql:ExecutionResult quantityResult = check database:dbClient->execute(`
                     UPDATE assets 
-                    SET quantity = quantity - ${currentReq.quantity}
+                    SET quantity = quantity - ${assetrequest.quantity}
                     WHERE asset_id = ${currentReq.asset_id} AND org_id = ${orgId}
                 `);
 
@@ -205,7 +205,7 @@ service /assetrequest on database:mainListener {
                 // Handle constraint violation or other database errors
                 string errorMessage = e.message();
                 if errorMessage.includes("chk_quantity_nonnegative") || errorMessage.includes("3819") {
-                    return error("Not enough quantity available. Database constraint violated. Error Code: CONSTRAINT_VIOLATION_3819");
+                    return error("Not enough quantity available. Database constraint violated");
                 }
                 return error("Database error occurred while updating quantity: " + errorMessage);
             }
