@@ -44,7 +44,7 @@ service /assetrequest on database:mainListener {
         JOIN users u ON ra.user_id = u.user_id
         JOIN assets a ON ra.asset_id = a.asset_id
         WHERE ra.org_id = ${orgId}
-        order by ra.submitted_date desc;`);
+        order by ra.submitted_date asc;`);
 
         AssetRequest[] assetrequests = [];
 
@@ -83,7 +83,7 @@ service /assetrequest on database:mainListener {
         JOIN users u ON ra.user_id = u.user_id
         JOIN assets a ON ra.asset_id = a.asset_id
         WHERE ra.user_id = ${userid} AND ra.org_id = ${orgId}
-        order by ra.submitted_date desc;`);
+        order by ra.submitted_date asc;`);
 
         AssetRequest[] assetrequests = [];
 
