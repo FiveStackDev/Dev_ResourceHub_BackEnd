@@ -53,9 +53,7 @@ service /user on database:mainListener {
         });
 
         if (emailCheckResult.length() > 0 && emailCheckResult[0].count > 0) {
-            return {
-                message: "Email already exists in a organization. Please use a different email address."
-            };
+            return error("Email already exists in the organization. Please use a different email address.");
         }
 
         // Generate a random password of length 8 
