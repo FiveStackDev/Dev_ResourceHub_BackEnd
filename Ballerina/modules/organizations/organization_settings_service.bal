@@ -294,11 +294,11 @@ You have requested to DELETE your organization from ResourceHub. This is a PERMA
 DELETION VERIFICATION CODE: ${deleterec.code ?: "ERROR - Contact Support"}
 
 WARNING: This action will PERMANENTLY DELETE:
-• Your entire organization account
-• ALL users in your organization  
-• ALL assets, meal requests, and maintenance records
-• ALL notifications and reports
-• ALL historical data
+*Your entire organization account
+*ALL users in your organization
+*ALL assets, meal requests, and maintenance records
+*ALL notifications and reports
+*ALL historical data
 
 INSTRUCTIONS:
 1. Enter this verification code ONLY if you are absolutely certain you want to delete your organization
@@ -328,6 +328,66 @@ Your Digital Resource Management Solution`
             warning: "Organization deletion is permanent and irreversible. Proceed with extreme caution."
         };
     }
+
+ // Send verification code for forgot password - checks if user exists first
+    resource function post registerVerificationCode(@http:Payload user:Email email) returns json|error {
+        // Validate email format (basic check)
+        if !email.email.includes("@") || !email.email.includes(".") {
+            return error("Invalid email format", statusCode = 400);
+        }
+
+        // Check if the user exists in the database
+        sql:ParameterizedQuery checkUserQuery = `SELECT user_id, email FROM users WHERE email = ${email.email}`;
+        stream<record {|int user_id; string email;|}, sql:Error?> userStream = database:dbClient->query(checkUserQuery);
+
+        record {|int user_id; string email;|}? userRecord = ();
+        check userStream.forEach(function(record {|int user_id; string email;|} user) {
+            userRecord = user;
+        });
+
+        // If user doesn't exist, return error
+        if userRecord is record {|int user_id; string email;|} {
+            return error("Email already exists. Please check your email or register for a new account.", statusCode = 404);
+        }
+
+        // User exists, send verification code
+        email:Message verificationEmail = {
+            to: [email.email],
+            subject: "Organization Register Verification Code - ResourceHub",
+            body: string `Hello,
+
+We received a request to register a new organization for your ResourceHub account. To proceed with the registration, please verify your identity by entering the verification code below.
+
+VERIFICATION CODE: ${email.code ?: "ERROR - Contact Support"}
+
+INSTRUCTIONS:
+1. Enter this verification code in the registration form within the next few minutes
+2. This code is valid for a limited time for security purposes
+3. After verification, you will receive a new temporary password via email
+
+SECURITY NOTE:
+If you did not request this password reset, you can safely ignore this email. No changes will be made to your account, and your information remains secure.
+
+NEED ASSISTANCE?
+Our support team is ready to help if you encounter any issues. Contact us at resourcehub.contact.info@gmail.com with any questions or concerns.
+
+Thank you for choosing ResourceHub. We appreciate your trust in our platform and are committed to providing you with excellent service.
+
+Best regards,
+The ResourceHub Team
+Your Digital Resource Management Solution`
+        };
+
+        error? emailResult = common:emailClient->sendMessage(verificationEmail);
+        if emailResult is error {
+            return error("Failed to send verification code. Please try again later.", statusCode = 500);
+        }
+
+        return {
+            message: "Verification code sent successfully. Check your email for the code."
+        };
+    }
+
 }
 
 public function startOrganizationSettingsService() returns error? {
